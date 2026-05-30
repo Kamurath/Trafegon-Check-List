@@ -195,39 +195,11 @@ export const INITIAL_STANDARD_TASKS: StandardTask[] = [
     priority: 'alta'
   },
   {
-    id: 'story-2',
-    title: 'Story 2 publicado/programado',
-    frequency: 'diario',
-    description: 'Verificar a publicação ou programação do segundo Story do dia (sugestão: início da tarde).',
-    priority: 'media'
-  },
-  {
-    id: 'story-3',
-    title: 'Story 3 publicado/programado',
-    frequency: 'diario',
-    description: 'Verificar a publicação ou programação do terceiro Story do dia (sugestão: final da tarde/noite).',
-    priority: 'media'
-  },
-  {
     id: 'nota-instagram',
-    title: 'Nota do Instagram publicada',
+    title: 'Insira Nota',
     frequency: 'diario',
     description: 'Postar uma nota curta no perfil para aumentar retenção e interações de ofertas rápidas.',
     priority: 'baixa'
-  },
-  {
-    id: 'story-real',
-    title: 'Story real recebido',
-    frequency: 'diario',
-    description: 'Verificar se o story humanizado real foi recebido da equipe da unidade.',
-    priority: 'alta'
-  },
-  {
-    id: 'bastidor',
-    title: 'Bastidor recebido',
-    frequency: 'diario',
-    description: 'Cobrar e registrar o recebimento de fotos ou vídeos de bastidores da clínica.',
-    priority: 'media'
   },
   {
     id: 'pendencia-diaria',

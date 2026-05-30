@@ -37,7 +37,11 @@ import {
   Skull,
   Info,
   Layers,
-  Database
+  Database,
+  Download,
+  Upload,
+  Copy,
+  FileCode
 } from 'lucide-react';
 
 interface ConfiguracoesViewProps {
@@ -89,7 +93,12 @@ export default function ConfiguracoesView({
   onUpdateSuggestions
 }: ConfiguracoesViewProps) {
   // Navigation tabs of settings
-  const [activeSubTab, setActiveSubTab] = useState<'unidades' | 'datas' | 'tarefas' | 'regras' | 'status' | 'historico' | 'sugestoes'>('unidades');
+  const [activeSubTab, setActiveSubTab] = useState<'unidades' | 'datas' | 'tarefas' | 'regras' | 'status' | 'historico' | 'sugestoes' | 'backup'>('unidades');
+
+  // Backup and Data sync states
+  const [pastedBackupText, setPastedBackupText] = useState('');
+  const [isCopied, setIsCopied] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
 
   // Unified feedback alerts
   const [notice, setNotice] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
@@ -98,6 +107,61 @@ export default function ConfiguracoesView({
   const showNotice = (text: string, type: 'success' | 'info' | 'error' = 'success') => {
     setNotice({ text, type });
     setTimeout(() => setNotice(null), 4000);
+  };
+
+  const utf8_to_b64 = (str: string) => {
+    return window.btoa(unescape(encodeURIComponent(str)));
+  };
+
+  const b64_to_utf8 = (str: string) => {
+    return decodeURIComponent(escape(window.atob(str)));
+  };
+
+  const handleImportData = (rawText: string) => {
+    try {
+      let jsonText = rawText.trim();
+      
+      // Try treating as base64 token if it doesn't start with {
+      if (!jsonText.startsWith('{')) {
+        try {
+          jsonText = b64_to_utf8(jsonText);
+        } catch (e) {
+          // If decoding base64 failed, continue and try parsing anyway
+        }
+      }
+
+      const parsed = JSON.parse(jsonText);
+      
+      // Ensure it contains mandatory database elements
+      const requiredKeys = ['trafegon_units', 'trafegon_tasks'];
+      const hasKeys = requiredKeys.some(k => k in parsed);
+      if (!hasKeys) {
+        throw new Error('O formato do arquivo ou token inserido é inválido. Certifique-se de estar usando um backup exportado do TráfegON.');
+      }
+
+      // Save keys into localStorage
+      Object.keys(parsed).forEach(k => {
+        if (parsed[k] !== null && parsed[k] !== undefined) {
+          localStorage.setItem(k, typeof parsed[k] === 'string' ? parsed[k] : JSON.stringify(parsed[k]));
+        }
+      });
+
+      // Maintain internal v2 storage compatibility
+      localStorage.setItem('trafegon_units_v2', 'true');
+
+      showNotice('Backup importado com sucesso! Sincronizando e recarregando o painel...', 'success');
+      
+      // Clear pasting text state list
+      setPastedBackupText('');
+
+      // Reload window to let App.tsx re-initialize states from localStorage
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+
+    } catch (err: any) {
+      showNotice(err.message || 'Falha ao processar arquivo ou código de backup. Verifique se o conteúdo está correto.', 'error');
+    }
   };
 
   // -------------------------------------------------------------
@@ -793,12 +857,21 @@ export default function ConfiguracoesView({
         </button>
 
         <button
-          onClick={() => setActiveSubTab('historico')}
+          onClick={() => setActiveSubTab('backup')}
           className={`px-4 py-2 text-xs font-bold rounded-lg cursor-pointer transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 ml-auto ${
+            activeSubTab === 'backup' ? 'bg-[#1C1C1C] text-white shadow-sm border border-[#2B2B2B]' : 'text-gray-400 hover:text-white'
+          }`}
+        >
+          <Database className="w-3.5 h-3.5 text-indigo-400" /> 7. Backup e Integração
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('historico')}
+          className={`px-4 py-2 text-xs font-bold rounded-lg cursor-pointer transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 ${
             activeSubTab === 'historico' ? 'bg-[#1C1C1C] text-white shadow-sm border border-[#2B2B2B]' : 'text-gray-400 hover:text-white'
           }`}
         >
-          <History className="w-3.5 h-3.5" /> 7. Histórico ({changeLogs.length})
+          <History className="w-3.5 h-3.5" /> 8. Histórico ({changeLogs.length})
         </button>
       </div>
 
@@ -1902,12 +1975,12 @@ export default function ConfiguracoesView({
             <div className="space-y-3">
               <div className="p-3 bg-[#181818] rounded-xl border border-[#222] space-y-1.5">
                 <span className="font-bold text-gray-200">Reunião Quinzenal</span>
-                <p className="text-gray-400 leading-snug">Metodologia aplicada de cobrança de bastidores e stories humanizados baseados nas métricas.</p>
+                <p className="text-gray-400 leading-snug">Metodologia aplicada de cobrança de Stories e notas baseados nas métricas operacionais.</p>
               </div>
 
               <div className="p-3 bg-[#181818] rounded-xl border border-[#222] space-y-1.5">
                 <span className="font-bold text-gray-200">Checklist Automático</span>
-                <p className="text-gray-400 leading-snug">Incentiva gerentes a bater metas de Stories diários (Até às 09h00, 14h00 e 18h00).</p>
+                <p className="text-gray-400 leading-snug">Incentiva gerentes a bater metas de Story 1 (Até às 09h00) e Insira Nota (Até às 11h00).</p>
               </div>
 
               <div className="p-3 bg-[#181818] rounded-xl border border-[#222] space-y-1.5">
@@ -2157,6 +2230,269 @@ export default function ConfiguracoesView({
           </div>
         );
       })()}
+
+      {/* ====================================================================== */}
+      {/* SUB-TAB: BACKUP / IMPORTAR / EXPORTAR DADOS OPERACIONAIS               */}
+      {/* ====================================================================== */}
+      {activeSubTab === 'backup' && (
+        <div className="space-y-6 animate-fadeIn">
+          {/* Informative Header Banner */}
+          <div className="bg-[#141414] border border-[#212121] p-5 rounded-2xl flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+            <div className="space-y-1 text-left">
+              <span className="text-[10px] font-bold font-mono text-indigo-400 uppercase tracking-widest block">Sincronização entre Dispositivos</span>
+              <h3 className="text-lg font-display font-black text-white">Importar e Exportar Informações</h3>
+              <p className="text-xs text-gray-400 max-w-xl leading-relaxed">
+                Transfira instantaneamente suas clínicas, roteiros operacionais, registros de reuniões quinzenais, cronogramas de lives e históricos de justificativas para outro computador, celular ou tablet.
+              </p>
+            </div>
+            <Database className="w-8 h-8 text-indigo-400 shrink-0" />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            
+            {/* 1. EXPORT COLUMN */}
+            <div className="bg-[#141414] border border-[#212121] rounded-2xl p-5 space-y-4 text-left">
+              <div className="border-b border-[#212121] pb-3 flex items-center justify-between">
+                <div>
+                  <h4 className="font-display font-extrabold text-[15px] text-white">1. Exportar Backup do Sistema</h4>
+                  <p className="text-gray-400 text-xs mt-0.5 font-sans">Baixe ou copie o estado atual completo do seu app.</p>
+                </div>
+                <Download className="w-4 h-4 text-emerald-400 font-sans" />
+              </div>
+
+              <div className="text-xs text-gray-400 leading-relaxed bg-[#191919]/60 p-3.5 rounded-xl border border-[#232323] space-y-2">
+                <span className="font-bold text-gray-300 block uppercase font-mono text-[9px] tracking-wider">📦 O que está incluído no backup:</span>
+                <ul className="list-disc list-inside space-y-1 pl-1 text-[11px] text-gray-400">
+                  <li>Todas as <strong>franquias cadastradas</strong> e suas regras de filial</li>
+                  <li>Checklists de Stories 1, Notas e Feed Principal por unidade</li>
+                  <li><strong>Histórico completo de alterações</strong> e justificativas</li>
+                  <li>Logs de reuniões operacionais, lives e calendários táticos</li>
+                  <li>Configurações globais e banco de sugestões criativas</li>
+                </ul>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      const data: Record<string, string | null> = {};
+                      const keys = [
+                        'trafegon_units',
+                        'trafegon_tasks',
+                        'trafegon_executions',
+                        'trafegon_pendencias',
+                        'trafegon_global_config',
+                        'trafegon_change_history',
+                        'trafegon_suggestions',
+                        'trafegon_cronograma_v2',
+                        'trafegon_lives_v2',
+                        'trafegon_reunioes_v2',
+                        'trafegon_units_v2'
+                      ];
+                      keys.forEach(k => {
+                        data[k] = localStorage.getItem(k);
+                      });
+                      
+                      const jsonStr = JSON.stringify(data, null, 2);
+                      const blob = new Blob([jsonStr], { type: 'application/json' });
+                      const url = URL.createObjectURL(blob);
+                      
+                      const a = document.createElement('a');
+                      const today = new Date().toISOString().split('T')[0];
+                      a.href = url;
+                      a.download = `trafegon_backup_${today}.json`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                      
+                      showNotice('Arquivo de backup (.json) gerado e baixado com sucesso!', 'success');
+                    } catch (err) {
+                      showNotice('Erro ao gerar arquivo de backup.', 'error');
+                    }
+                  }}
+                  className="flex-1 py-3 bg-indigo-650 hover:bg-indigo-600 text-white font-extrabold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md text-xs"
+                >
+                  <Download className="w-4 h-4" /> Baixar Arquivo JSON
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      const data: Record<string, string | null> = {};
+                      const keys = [
+                        'trafegon_units',
+                        'trafegon_tasks',
+                        'trafegon_executions',
+                        'trafegon_pendencias',
+                        'trafegon_global_config',
+                        'trafegon_change_history',
+                        'trafegon_suggestions',
+                        'trafegon_cronograma_v2',
+                        'trafegon_lives_v2',
+                        'trafegon_reunioes_v2',
+                        'trafegon_units_v2'
+                      ];
+                      keys.forEach(k => {
+                        data[k] = localStorage.getItem(k);
+                      });
+                      
+                      const rawText = JSON.stringify(data);
+                      const b64 = utf8_to_b64(rawText);
+                      
+                      navigator.clipboard.writeText(b64);
+                      setIsCopied(true);
+                      showNotice('Código de backup copiado para a área de transferência!', 'success');
+                      setTimeout(() => setIsCopied(false), 3000);
+                    } catch (err) {
+                      showNotice('Erro ao gerar código de backup.', 'error');
+                    }
+                  }}
+                  className="flex-1 py-3 bg-[#1C1C1C] hover:bg-[#252525] border border-[#2D2D2D] text-gray-200 hover:text-white font-extrabold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                >
+                  {isCopied ? <Check className="w-4 h-4 text-emerald-400 animate-bounce" /> : <Copy className="w-4 h-4 text-indigo-400" />}
+                  {isCopied ? 'Copiado para Clipboard!' : 'Copiar Token de backup'}
+                </button>
+              </div>
+
+              {/* Invisible/constrained visual representation of backup data */}
+              <div className="space-y-1 text-xs">
+                <label className="text-[10px] text-gray-500 font-bold uppercase font-mono">Prévia do Token de Transferência (Base64 compactado)</label>
+                <div className="relative rounded-xl border border-[#212121] bg-[#111] p-3 h-28 overflow-hidden group">
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-[#111]/80 to-transparent z-10 pointer-events-none" />
+                  <p className="font-mono text-[9px] text-gray-600 break-all leading-normal select-all">
+                    {(() => {
+                      try {
+                        const data: Record<string, string | null> = {};
+                        const keys = ['trafegon_units', 'trafegon_tasks', 'trafegon_global_config'];
+                        keys.forEach(k => { data[k] = localStorage.getItem(k); });
+                        return utf8_to_b64(JSON.stringify(data));
+                      } catch { return 'carregando_token_de_backup...'; }
+                    })()}
+                  </p>
+                  <span className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 text-[9px] bg-[#1A1A1A] border border-[#2D2D2D] text-gray-400 px-2.5 py-1 rounded-full font-black uppercase tracking-wider opacity-60 group-hover:opacity-100 transition-opacity">
+                    Mais de 10.000 caracteres no total
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. IMPORT COLUMN */}
+            <div className="bg-[#141414] border border-[#212121] rounded-2xl p-5 space-y-4 text-left">
+              <div className="border-b border-[#212121] pb-3 flex items-center justify-between">
+                <div>
+                  <h4 className="font-display font-extrabold text-[15px] text-white">2. Importar Backup no Dispositivo</h4>
+                  <p className="text-gray-400 text-xs mt-0.5 font-sans">Carregue o arquivo salvo ou cole o token completo.</p>
+                </div>
+                <Upload className="w-4 h-4 text-indigo-400 font-sans" />
+              </div>
+
+              {/* Drag and Drop JSON area */}
+              <div 
+                className={`border-2 border-dashed rounded-2xl p-4 text-center transition-all cursor-pointer relative ${
+                  dragActive 
+                    ? 'border-indigo-500 bg-indigo-950/20 text-white shadow-inner scale-[0.99]' 
+                    : 'border-[#2D2D2D] hover:border-indigo-500/40 bg-[#121212] hover:bg-[#181818]/60 text-gray-400'
+                }`}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragActive(true);
+                }}
+                onDragLeave={() => setDragActive(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragActive(false);
+                  const file = e.dataTransfer.files[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      const text = event.target?.result as string;
+                      if (text) handleImportData(text);
+                    };
+                    reader.readAsText(file);
+                  }
+                }}
+                onClick={() => {
+                  document.getElementById('file-upload-input')?.click();
+                }}
+              >
+                <input 
+                  type="file" 
+                  id="file-upload-input" 
+                  accept=".json" 
+                  className="hidden" 
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        const text = event.target?.result as string;
+                        if (text) handleImportData(text);
+                      };
+                      reader.readAsText(file);
+                    }
+                  }}
+                />
+                <div className="flex flex-col items-center justify-center space-y-2 py-3">
+                  <FileCode className="w-8 h-8 text-indigo-500/70 shrink-0" />
+                  <span className="font-sans font-black text-xs text-gray-300 block">Arraste seu arquivo .json de backup aqui</span>
+                  <span className="text-[10px] text-gray-500 font-sans">ou clique aqui para selecionar do computador</span>
+                </div>
+              </div>
+
+              <div className="relative flex py-2 items-center text-xs">
+                <div className="flex-grow border-t border-[#212121]"></div>
+                <span className="flex-shrink mx-3 text-gray-500 font-mono text-[10px] uppercase font-bold tracking-wider">ou entre com código token</span>
+                <div className="flex-grow border-t border-[#212121]"></div>
+              </div>
+
+              {/* Paste Base64 or JSON area */}
+              <div className="space-y-1.5 text-xs text-left">
+                <label className="block text-[10px] text-gray-400 font-mono font-bold uppercase">Código Token Base64 ou conteúdo JSON:</label>
+                <textarea
+                  rows={3}
+                  placeholder="Cole o longo código token que você copiou do outro dispositivo..."
+                  value={pastedBackupText}
+                  onChange={(e) => setPastedBackupText(e.target.value)}
+                  className="w-full bg-[#111] text-xs font-mono text-white placeholder-gray-700 border border-[#2D2D2D] rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 select-text"
+                />
+              </div>
+
+              <button
+                type="button"
+                disabled={!pastedBackupText.trim()}
+                onClick={() => {
+                  if (pastedBackupText.trim()) {
+                    handleImportData(pastedBackupText.trim());
+                  }
+                }}
+                className={`w-full py-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md ${
+                  pastedBackupText.trim()
+                    ? 'bg-indigo-600 hover:bg-indigo-700 hover:scale-[1.01] text-white'
+                    : 'bg-indigo-950/20 text-gray-500 border border-indigo-950/20 cursor-not-allowed'
+                }`}
+              >
+                <Upload className="w-4 h-4" /> Validar e Restaurar Backup de Texto
+              </button>
+
+              {/* Attention Warning */}
+              <div className="flex gap-3 bg-red-950/10 border border-red-900/10 p-3 rounded-xl text-xs text-left align-top leading-tight">
+                <AlertTriangle className="w-4.5 h-4.5 text-red-400 shrink-0 mt-0.5 font-sans" />
+                <div className="space-y-1.5 text-gray-400 leading-relaxed font-sans text-[11px]">
+                  <strong className="text-red-400 block font-black uppercase font-mono tracking-wider text-[10px]">⚠️ ATENÇÃO: OPERAÇÃO DE SUBSTITUIÇÃO</strong>
+                  <p>
+                    A restauração substituirá <strong>completamente</strong> clínicas, checklists e relatórios locais deste navegador actual. Este processo não pode ser desfeito.
+                  </p>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* ====================================================================== */}
       {/* 4. MODAL DETALHE JUSTIFICATIVA DA ALTERAÇÃO (Requirements 5, 6 & 7)   */}

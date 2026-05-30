@@ -74,17 +74,17 @@ export default function App() {
   // Settings custom states
   const [globalConfig, setGlobalConfig] = useState<GlobalConfig>({
     postagemPrincipalDays: [1, 3, 5],
-    storiesFrequency: '3 stories diários',
-    instagramNotesFrequency: '1 nota diária',
+    storiesFrequency: '1 story diário (Story 1)',
+    instagramNotesFrequency: '1 nota diária (Insira Nota)',
     tiktokFrequency: '3 postagens semanais',
     livesFrequency: '1 vez por semana',
     reuniaoQuinzenal: '2026-05-30T10:00',
     cronogramaMensalPrazo: '2026-06-05',
-    suggestedPublishTimes: ['09:00', '12:00', '14:00', '18:00'],
+    suggestedPublishTimes: ['09:00', '11:00', '12:00'],
     specialDates: [],
-    criteriosStatusVerde: 'Unidade executou 100% dos Stories agência/local, enviou bastidores, postagem principal de feed e sem pendências ativas.',
-    criteriosStatusAmarelo: 'Algum story diário em atraso ou falta de envio de bastidor da equipe local.',
-    criteriosStatusVermelho: 'Qualquer pendência de gravidade ALTA/CRÍTICA aberta, ou descumprimento total do story real diário.'
+    criteriosStatusVerde: 'Unidade executou Story 1, Insira Nota, postagem principal de feed e sem pendências ativas.',
+    criteriosStatusAmarelo: 'Algum story diário ou nota em atraso.',
+    criteriosStatusVermelho: 'Qualquer pendência de gravidade ALTA/CRÍTICA aberta.'
   });
   const [changeLogs, setChangeLogs] = useState<SystemChangeLog[]>([]);
   const [suggestions, setSuggestions] = useState<QuickSuggestion[]>([]);
@@ -108,7 +108,16 @@ export default function App() {
     }
 
     if (savedTasks) {
-      setTasks(JSON.parse(savedTasks));
+      let parsed = JSON.parse(savedTasks) as StandardTask[];
+      parsed = parsed.filter(t => t.frequency !== 'diario' || !['story-2', 'story-3', 'story-real', 'bastidor'].includes(t.id));
+      parsed = parsed.map(t => {
+        if (t.id === 'nota-instagram') {
+          return { ...t, title: 'Insira Nota' };
+        }
+        return t;
+      });
+      setTasks(parsed);
+      localStorage.setItem('trafegon_tasks', JSON.stringify(parsed));
     } else {
       setTasks(INITIAL_STANDARD_TASKS);
       localStorage.setItem('trafegon_tasks', JSON.stringify(INITIAL_STANDARD_TASKS));
@@ -133,17 +142,17 @@ export default function App() {
     } else {
       localStorage.setItem('trafegon_global_config', JSON.stringify({
         postagemPrincipalDays: [1, 3, 5],
-        storiesFrequency: '3 stories diários',
-        instagramNotesFrequency: '1 nota diária',
+        storiesFrequency: '1 story diário (Story 1)',
+        instagramNotesFrequency: '1 nota diária (Insira Nota)',
         tiktokFrequency: '3 postagens semanais',
         livesFrequency: '1 vez por semana',
         reuniaoQuinzenal: '2026-05-30T10:00',
         cronogramaMensalPrazo: '2026-06-05',
-        suggestedPublishTimes: ['09:00', '12:00', '14:00', '18:00'],
+        suggestedPublishTimes: ['09:00', '11:00', '12:00'],
         specialDates: [],
-        criteriosStatusVerde: 'Unidade executou 100% dos Stories agência/local, enviou bastidores, postagem principal de feed e sem pendências ativas.',
-        criteriosStatusAmarelo: 'Algum story diário em atraso ou falta de envio de bastidor da equipe local.',
-        criteriosStatusVermelho: 'Qualquer pendência de gravidade ALTA/CRÍTICA aberta, ou descumprimento total do story real diário.'
+        criteriosStatusVerde: 'Unidade executou Story 1, Insira Nota, postagem principal de feed e sem pendências ativas.',
+        criteriosStatusAmarelo: 'Algum story diário ou nota em atraso.',
+        criteriosStatusVermelho: 'Qualquer pendência de gravidade ALTA/CRÍTICA aberta.'
       }));
     }
 

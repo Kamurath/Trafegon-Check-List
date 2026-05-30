@@ -97,11 +97,7 @@ export default function DashboardView({
 
       const checklistItems = [
         { id: 'story-1', title: 'Story 1 publicado/programado', suggestedTime: '09:00', isStory: true },
-        { id: 'story-2', title: 'Story 2 publicado/programado', suggestedTime: '14:00', isStory: true },
-        { id: 'story-3', title: 'Story 3 publicado/programado', suggestedTime: '18:00', isStory: true },
-        { id: 'nota-instagram', title: 'Nota do Instagram publicada', suggestedTime: '11:00', isNota: true },
-        { id: 'story-real', title: 'Story real recebido da unidade', suggestedTime: '12:00', isVideo: true },
-        { id: 'bastidor', title: 'Bastidor recebido', suggestedTime: '16:00', isVideo: true }
+        { id: 'nota-instagram', title: 'Insira Nota', suggestedTime: '11:00', isNota: true }
       ];
 
       if (isPostagemDay) {
@@ -115,7 +111,7 @@ export default function DashboardView({
 
       return checklistItems;
     };
-  }, []);
+  }, [globalConfig]);
 
   // Compute Task Status directly
   const getTaskStatus = (unitId: string, taskId: string, dateStr: string, suggestedTime?: string) => {
@@ -238,9 +234,6 @@ export default function DashboardView({
 
       // Individual Task Status Queries
       const story1Status = getTaskStatus(unit.id, 'story-1', selectedDate, '09:00');
-      const story2Status = getTaskStatus(unit.id, 'story-2', selectedDate, '14:00');
-      const story3Status = getTaskStatus(unit.id, 'story-3', selectedDate, '18:00');
-      const storiesCompleted = [story1Status, story2Status, story3Status].filter(s => s === 'executado').length;
 
       const notaStatus = getTaskStatus(unit.id, 'nota-instagram', selectedDate, '11:00');
       const postagemStatus = isPostagemDay ? getTaskStatus(unit.id, 'postagem-principal', selectedDate, '12:00') : 'nao_se_aplica';
@@ -273,20 +266,18 @@ export default function DashboardView({
       }
 
       // COLLABORATION CALCULATION
-      // boa/média/baixa/crítica based on story-real, bastidor, materials on time, open pendencies
+      // based on story-1, nota-instagram, delays, and open pendencies
       let collaborationScore = 100;
       
-      const storyRealExec = executions.find(e => e.unitId === unit.id && e.date === selectedDate && e.taskId === 'story-real');
-      if (!storyRealExec || storyRealExec.status === 'pendente' || storyRealExec.status === 'atrasado') {
-        collaborationScore -= 25; // no real story sent
+      if (story1Status !== 'executado' && story1Status !== 'nao_se_aplica') {
+        collaborationScore -= 35; // story 1 missing
       }
       
-      const bastidorExec = executions.find(e => e.unitId === unit.id && e.date === selectedDate && e.taskId === 'bastidor');
-      if (!bastidorExec || bastidorExec.status === 'pendente' || bastidorExec.status === 'atrasado') {
-        collaborationScore -= 25; // no behind the scenes sent
+      if (notaStatus !== 'executado' && notaStatus !== 'nao_se_aplica') {
+        collaborationScore -= 25; // note missing
       }
 
-      collaborationScore -= delayedCount * 12;
+      collaborationScore -= delayedCount * 15;
       collaborationScore -= unitPendencias.length * 15;
       collaborationScore = Math.max(0, collaborationScore);
 
@@ -299,7 +290,7 @@ export default function DashboardView({
       return {
         unit,
         generalStatus,
-        storiesCompleted,
+        story1Status,
         notaStatus,
         postagemStatus,
         isPostagemDay,
@@ -402,10 +393,10 @@ export default function DashboardView({
       text += `- Excelente engajamento! Todas as clínicas enviando materiais adequadamente.\n`;
     } else {
       lowColab.forEach(u => {
-        const storyRealStr = executions.some(e => e.unitId === u.unit.id && e.date === selectedDate && e.taskId === 'story-real' && e.status === 'executado') ? 'Enviado' : '❌ Não enviado';
-        const bastidorStr = executions.some(e => e.unitId === u.unit.id && e.date === selectedDate && e.taskId === 'bastidor' && e.status === 'executado') ? 'Enviado' : '❌ Não enviado';
+        const story1Str = executions.some(e => e.unitId === u.unit.id && e.date === selectedDate && e.taskId === 'story-1' && e.status === 'executado') ? 'Postado' : '❌ Não postado';
+        const notaStr = executions.some(e => e.unitId === u.unit.id && e.date === selectedDate && e.taskId === 'nota-instagram' && e.status === 'executado') ? 'Postado' : '❌ Não postado';
         text += `- ⚠️ *${u.unit.name}* (Ponto de Contato: _${u.unit.gerente}_)\n`;
-        text += `  └ Stories Reais: ${storyRealStr} | Bastidores: ${bastidorStr}\n`;
+        text += `  └ Story 1: ${story1Str} | Insira Nota: ${notaStr}\n`;
       });
     }
     text += `\n`;
@@ -489,8 +480,8 @@ export default function DashboardView({
         </div>
       </div>
 
-      {/* 2. OPERATIONAL BENTO GRID OF CARDS (9 cards requested!) */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-9 gap-4">
+      {/* 2. OPERATIONAL BENTO GRID OF CARDS (8 cards requested!) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
         {/* Card 1: Total tarefas de hoje */}
         <div className="bg-[#141414] p-4 rounded-xl border border-[#212121] shadow-md flex flex-col justify-between">
           <span className="text-[10px] text-gray-500 font-extrabold uppercase tracking-wider block">Tarefas de Hoje</span>
@@ -557,17 +548,7 @@ export default function DashboardView({
           <span className="text-[9.5px] text-gray-450 font-medium block mt-1.5">Principais no Feed</span>
         </div>
 
-        {/* Card 8: Vídeos Pendentes */}
-        <div className="bg-[#141414] p-4 rounded-xl border border-[#212121] shadow-md flex flex-col justify-between">
-          <span className="text-[10px] text-pink-400 font-extrabold uppercase tracking-wider block">Vídeos Pend.</span>
-          <strong className="text-2xl font-mono font-black text-pink-300 mt-1.5 block flex items-center gap-1">
-            <Video className="w-4 h-4 text-pink-400 inline" />
-            {computedMetrics.pendingVideosToday}
-          </strong>
-          <span className="text-[9.5px] text-gray-450 font-medium block mt-1.5">Falta envio do ponto</span>
-        </div>
-
-        {/* Card 9: Pendências Críticas */}
+        {/* Card 8: Pendências Críticas */}
         <div className={`p-4 rounded-xl border shadow-md flex flex-col justify-between ${
           computedMetrics.criticalPendenciesCount > 0 ? 'bg-[#292217]/50 border-amber-900/40' : 'bg-[#141414] border-[#212121]'
         }`}>
@@ -614,15 +595,15 @@ export default function DashboardView({
               <tr>
                 <th className="py-3 px-4">Unidade</th>
                 <th className="py-3 px-3 text-center">Status Geral</th>
-                <th className="py-3 px-3 text-center">Stories (0 a 3)</th>
-                <th className="py-3 px-3 text-center">Nota IG</th>
+                <th className="py-3 px-3 text-center">Story 1</th>
+                <th className="py-3 px-3 text-center">Insira Nota</th>
                 <th className="py-3 px-3 text-center">Postagem Feed</th>
                 <th className="py-3 px-3 text-center">Ocorrências Ativas</th>
                 <th className="py-3 px-4 text-right">Colaboração da Unidade</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#212121]">
-              {unitStatuses.map(({ unit, generalStatus, storiesCompleted, notaStatus, postagemStatus, isPostagemDay, openPendenciasCount, collaborationRating, collaborationScore, unitPendencias, hasHighUrgency }) => {
+              {unitStatuses.map(({ unit, generalStatus, story1Status, notaStatus, postagemStatus, isPostagemDay, openPendenciasCount, collaborationRating, collaborationScore, unitPendencias, hasHighUrgency }) => {
                 return (
                   <tr key={unit.id} className="hover:bg-[#191919] transition-all group">
                     {/* Unidade Column */}
@@ -660,25 +641,18 @@ export default function DashboardView({
                       </div>
                     </td>
 
-                    {/* Stories Progress Column */}
+                    {/* Story 1 Progress Column */}
                     <td className="py-4 px-3 text-center">
-                      <div className="flex flex-col items-center justify-center space-y-1">
-                        <span className="font-mono font-black text-[12px] text-white">
-                          {storiesCompleted}/3
+                      <div className="flex justify-center">
+                        <span className={`p-1 rounded-lg ${
+                          story1Status === 'executado' 
+                            ? 'bg-emerald-950/30 border border-emerald-900/30 text-emerald-450' 
+                            : story1Status === 'nao_se_aplica'
+                            ? 'bg-zinc-800/40 border border-zinc-700/30 text-gray-400'
+                            : 'bg-rose-950/20 border border-rose-900/20 text-rose-450'
+                        }`} title={story1Status === 'executado' ? 'Story 1 publicado' : story1Status === 'nao_se_aplica' ? 'Story 1 não se aplica' : 'Story 1 pendente'}>
+                          <Instagram className="w-4 h-4" />
                         </span>
-                        {/* Interactive mini progress block dots */}
-                        <div className="flex items-center gap-1">
-                          {[1, 2, 3].map(ind => (
-                            <span 
-                              key={ind} 
-                              className={`w-2 h-2 rounded-full ${
-                                ind <= storiesCompleted 
-                                  ? 'bg-indigo-500 shadow-md' 
-                                  : 'bg-[#252525]'
-                              }`}
-                            />
-                          ))}
-                        </div>
                       </div>
                     </td>
 
@@ -688,8 +662,10 @@ export default function DashboardView({
                         <span className={`p-1 rounded-lg ${
                           notaStatus === 'executado' 
                             ? 'bg-emerald-950/30 border border-emerald-900/30 text-emerald-450' 
+                            : notaStatus === 'nao_se_aplica'
+                            ? 'bg-zinc-800/40 border border-zinc-700/30 text-gray-400'
                             : 'bg-rose-950/20 border border-rose-900/20 text-rose-450'
-                        }`} title={notaStatus === 'executado' ? 'Nota publicada com sucesso' : 'Nota não realizada ou pendente'}>
+                        }`} title={notaStatus === 'executado' ? 'Nota publicada com sucesso' : notaStatus === 'nao_se_aplica' ? 'Nota não se aplica' : 'Nota não realizada ou pendente'}>
                           <Instagram className="w-4 h-4" />
                         </span>
                       </div>

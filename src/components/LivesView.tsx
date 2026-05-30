@@ -15,8 +15,13 @@ import {
   Edit2,
   Trash2,
   HelpCircle,
-  CheckSquare
+  CheckSquare,
+  Calendar,
+  Sparkles,
+  Database,
+  ArrowDownToLine
 } from 'lucide-react';
+import { CRONOGRAMA_LIVES_OFICIAL } from '../data/cronogramaLives';
 
 interface LiveItem {
   id: string;
@@ -34,7 +39,19 @@ interface LivesViewProps {
   todayDate: string;
 }
 
+const MAPPED_CRONOGRAMA_LIVES: LiveItem[] = CRONOGRAMA_LIVES_OFICIAL.map((item, index) => ({
+  id: `live_cron_${index}_${item.data}`,
+  unitId: item.unitId,
+  dataPrevista: item.data,
+  status: 'Planejada',
+  materialDisponivel: '',
+  ofertaTema: `Live Oficial Espaçolaser | Unidade: ${item.unidade} (${item.sigla})`,
+  testeTecnicoFeito: false,
+  observacoes: `Horário oficial: ${item.horario}h. Cronograma de lives 2026.`
+}));
+
 const DEFAULT_LIVES_V2: LiveItem[] = [
+  ...MAPPED_CRONOGRAMA_LIVES,
   {
     id: 'live_1',
     unitId: '1',
@@ -74,11 +91,41 @@ export default function LivesView({ units, todayDate }: LivesViewProps) {
     return saved ? JSON.parse(saved) : DEFAULT_LIVES_V2;
   });
 
+  const [importSuccess, setImportSuccess] = useState<string>('');
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todas');
   const [unitFilter, setUnitFilter] = useState('todas');
   const [testFilter, setTestFilter] = useState('todos');
+
+  const handleImportOfficialLives = (overwrite: boolean) => {
+    const officialMapped: LiveItem[] = CRONOGRAMA_LIVES_OFICIAL.map((item, index) => ({
+      id: `live_cron_${index}_${item.data}_${Date.now()}`,
+      unitId: item.unitId,
+      dataPrevista: item.data,
+      status: 'Planejada',
+      materialDisponivel: '',
+      ofertaTema: `Live Oficial Espaçolaser | Unidade: ${item.unidade} (${item.sigla})`,
+      testeTecnicoFeito: false,
+      observacoes: `Horário oficial: ${item.horario}h. Cronograma de lives 2026.`
+    }));
+
+    if (overwrite) {
+      saveLives(officialMapped);
+      setImportSuccess('Cronograma oficial com 91 lives de Junho a Dezembro de 2026 carregado com sucesso!');
+    } else {
+      const existingKeys = new Set(lives.map(l => `${l.unitId}_${l.dataPrevista}`));
+      const uniqueNew = officialMapped.filter(l => !existingKeys.has(`${l.unitId}_${l.dataPrevista}`));
+      
+      saveLives([...uniqueNew, ...lives]);
+      setImportSuccess(`Calendário mesclado! Adicionadas ${uniqueNew.length} lives oficiais que não existiam ainda.`);
+    }
+
+    setTimeout(() => {
+      setImportSuccess('');
+    }, 4500);
+  };
 
   // Addition form states
   const [formData, setFormData] = useState({
@@ -226,6 +273,69 @@ export default function LivesView({ units, todayDate }: LivesViewProps) {
         >
           <Plus className="w-4 h-4" /> Agendar Nova Live
         </button>
+      </div>
+
+      {/* Import Notification Banner */}
+      {importSuccess && (
+        <div className="p-4 bg-emerald-950/20 border border-emerald-900/30 text-emerald-400 rounded-xl text-xs font-bold text-center animate-fadeIn flex items-center justify-center gap-2">
+          <CheckSquare className="w-4 h-4 text-emerald-450 shrink-0 animate-pulse" />
+          <span>{importSuccess}</span>
+        </div>
+      )}
+
+      {/* Official Lives Schedule Synchronizer Banner */}
+      <div className="bg-[#141414] border border-[#212121] rounded-2xl p-5 relative overflow-hidden shadow-xl text-left">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-650/5 blur-3xl pointer-events-none rounded-full" />
+        
+        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-2 py-0.5 bg-indigo-950/40 text-indigo-400 border border-indigo-900/40 rounded text-[9px] font-black uppercase tracking-wider font-mono">
+                📅 Parâmetro de CRM
+              </span>
+              <span className="text-[10px] text-gray-500 font-mono font-bold">Ano: 2026 | Horário Padrão: 15h | Duração: 30-60 min</span>
+            </div>
+            <h3 className="text-sm font-extrabold text-white">Cronograma Geral de Lives Sazonais Oficial (Junho - Dezembro)</h3>
+            <p className="text-xs text-gray-400 max-w-3xl leading-relaxed">
+              O cronograma distribui estrategicamente <strong>91 transmissões</strong> de segunda a sexta-feira durante o mês inteiro para cada unidade local de forma harmônica, desconsiderando feriados nacionais ou municipais pontuais.
+            </p>
+            
+            {/* Criteria mini-tags */}
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              <span className="px-2 py-0.5 rounded bg-zinc-900 text-zinc-400 border border-zinc-850 text-[10px]">🎯 1 live por dia</span>
+              <span className="px-2 py-0.5 rounded bg-zinc-900 text-zinc-400 border border-zinc-850 text-[10px]">📍 1 unidade por dia</span>
+              <span className="px-2 py-0.5 rounded bg-zinc-900 text-zinc-400 border border-zinc-850 text-[10px]">⏳ Escopo: Seg a Sex</span>
+              <span className="px-2 py-0.5 rounded bg-zinc-900 text-zinc-400 border border-zinc-850 text-[10px]">🛡️ Feriados Nacionais Isentos</span>
+            </div>
+          </div>
+
+          <div className="flex flex-row sm:flex-col gap-2 w-full lg:w-auto shrink-0 select-none">
+            <button
+              onClick={() => {
+                if (confirm('Atenção: Isso irá ADICIONAR as 91 lives do Calendário Oficial sem apagar as transmissões que você já personalizou. Prosseguir?')) {
+                  handleImportOfficialLives(false);
+                }
+              }}
+              className="flex-1 sm:flex-initial px-4 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-gray-250 border border-zinc-800 rounded-lg text-xs font-bold font-sans transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Database className="w-3.5 h-3.5 text-zinc-400" />
+              Mesclar no Calendário
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm('ATENÇÃO: Você tem certeza de que deseja SUBSTITUIR todas as lives salvas atualmente pelo Cronograma Oficial com 91 datas? Essa ação apagará as customizações atuais de status ou material.')) {
+                  handleImportOfficialLives(true);
+                }
+              }}
+              className="flex-1 sm:flex-initial px-4 py-2.5 bg-indigo-950/40 hover:bg-indigo-900/30 text-indigo-300 border border-indigo-900/40 rounded-lg text-xs font-black font-sans transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <ArrowDownToLine className="w-3.5 h-3.5 text-indigo-400" />
+              Resetar para Oficial
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Add New Live Form */}

@@ -22,9 +22,14 @@ import {
   X,
   Smartphone,
   Tablet,
-  Laptop
+  Laptop,
+  CalendarRange,
+  MessageSquare,
+  Award,
+  BookOpen
 } from 'lucide-react';
 import { formatShortDate, calculateCompletionRate, generateWhatsAppReport } from '../utils';
+import { CRONOGRAMA_LIVES_OFICIAL } from '../data/cronogramaLives';
 
 interface HojeViewProps {
   units: Unit[];
@@ -154,11 +159,7 @@ export default function HojeView({
         title: task.title,
         suggestedTime: task.suggestedTime || (
           task.id === 'story-1' ? '09:00' :
-          task.id === 'story-2' ? '14:00' :
-          task.id === 'story-3' ? '18:00' :
-          task.id === 'nota-instagram' ? '11:00' :
-          task.id === 'story-real' ? '12:00' :
-          task.id === 'bastidor' ? '16:00' : '12:00'
+          task.id === 'nota-instagram' ? '11:00' : '12:00'
         ),
         description: task.description
       }));
@@ -264,7 +265,14 @@ export default function HojeView({
       if (onTogglePendencia) onTogglePendencia(pendId);
       return;
     }
-    const nextStatus: TaskStatus = currentStatus === 'executado' ? 'pendente' : 'executado';
+    let nextStatus: TaskStatus;
+    if (currentStatus === 'executado') {
+      nextStatus = 'nao_se_aplica';
+    } else if (currentStatus === 'nao_se_aplica') {
+      nextStatus = 'pendente';
+    } else {
+      nextStatus = 'executado';
+    }
     toggleTaskStatus(unitId, taskId, selectedDate, nextStatus);
   };
 
@@ -355,7 +363,129 @@ export default function HojeView({
     return date.getDay();
   }, [selectedDate]);
   
-  const isPostagemFieldDay = targetDayOfWeek === 1 || targetDayOfWeek === 3 || targetDayOfWeek === 5;
+  const isPostagemFieldDay = useMemo(() => {
+    const postagemDays = globalConfig?.postagemPrincipalDays || [1, 3, 5];
+    return postagemDays.includes(targetDayOfWeek);
+  }, [globalConfig, targetDayOfWeek]);
+
+  const [copyCaptionSuccess, setCopyCaptionSuccess] = useState(false);
+
+  const postagemSugestao = useMemo(() => {
+    if (targetDayOfWeek === 1) { // Segunda
+      return {
+        tipo: 'Carrossel Explicativo',
+        tema: 'Mitos e Verdades sobre Depilação a Laser',
+        descricao: 'Gere autoridade e quebre objeções frequentes das clientes locais (Ex: se peles negras podem fazer, se o laser dói, etc.).',
+        copy: 'Segunda-feira pede liberdade! ✨ Se você ainda tem dúvidas sobre a depilação a laser, nós viemos desmitificar: é seguro, rápido e o custo-benefício é incomparável com ceras e lâminas comuns. Marque sua amiga que precisa começar hoje! 📲 Agende agora clicando no link do Direct ou Bio.'
+      };
+    } else if (targetDayOfWeek === 3) { // Quarta
+      return {
+        tipo: 'Antes e Depois / Depoimento',
+        tema: 'Prova Social: Resultados Reais Locais',
+        descricao: 'Publique fotos autorizadas ou prints de depoimentos espontâneos de clientes satisfeitos enviados às gerentes das clínicas.',
+        copy: 'Pele lisa e macia não é mágica, é tecnologia! 💙 Nosso tratamento de depilação a laser elimina até 90% dos pelos de forma progressiva e segura. Veja mais esse resultado real e agende o seu horário de avaliação gratuita! 🤩👇 No direct ou WhatsApp.'
+      };
+    } else if (targetDayOfWeek === 5) { // Sexta
+      return {
+        tipo: 'Urgência Local / Reels Dinâmico',
+        tema: 'Aviso Importante: Últimas Vagas do Sábado',
+        descricao: 'Gere alta escassez de horários para o sábado ou início da próxima semana. Incrível para converter clientes indecisas no WhatsApp.',
+        copy: 'Sextou com "S" de Sem Pelos! 💅 Fim de semana perfeito pede liberdade total para vestir o que quiser sem se preocupar. Lembrete importante: restam pouquíssimos horários disponíveis para amanhã e segunda-feira. Não perca tempo, clique no link do Direct e garanta sua vaga! 🏃‍♀️💨'
+      };
+    }
+    return {
+      tipo: 'Post Institucional / Benefícios',
+      tema: 'Mais Liberdade e Economia na Rotina',
+      descricao: 'Enfatize a economia ao longo do tempo se comparado com métodos dolorosos e temporários como cera fria/quente ou lâmina comum.',
+      copy: 'Menos tempo cuidando de pelos, mais tempo cuidando de você! 💎 A depilação a laser é a escolha inteligente de quem valoriza praticidade, bem-estar e o próprio bolso. Clique no direct para conhecer nossos pacotes exclusivos para esta semana.'
+    };
+  }, [targetDayOfWeek]);
+
+  // Cronograma de Lives - Evento de Hoje
+  const liveAgendadaHoje = useMemo(() => {
+    return CRONOGRAMA_LIVES_OFICIAL.find(item => item.data === selectedDate);
+  }, [selectedDate]);
+
+  // Calendário de Lives do Mês Selecionado (Próximas)
+  const proximasLivesDoMes = useMemo(() => {
+    const activeYearMonth = selectedDate.slice(0, 7); // "YYYY-MM"
+    return CRONOGRAMA_LIVES_OFICIAL.filter(item => {
+      return item.data.startsWith(activeYearMonth) && item.data >= selectedDate && item.data !== selectedDate;
+    }).slice(0, 3);
+  }, [selectedDate]);
+
+  // Evento Semanal de Hoje
+  const eventoSemanalHoje = useMemo(() => {
+    switch (targetDayOfWeek) {
+      case 1:
+        return {
+          titulo: 'Alinhamento Estratégico TráfegON',
+          horario: '10:00 - 11:00',
+          escopo: 'Semanal',
+          desc: 'Alinhamento com as Gerentes sobre metas de captação de leads locais.'
+        };
+      case 2:
+        return {
+          titulo: 'Revisão de Criativos Sazonais',
+          horario: '11:00 - 12:00',
+          escopo: 'Semanal',
+          desc: 'Feedback de posts orgânicos e anúncios pagos de alta performance que deram certo.'
+        };
+      case 3:
+        return {
+          titulo: 'Alinhamento Operacional Grupo ONE',
+          horario: '14:00 - 15:30',
+          escopo: 'Semanal',
+          desc: 'Resolução de gargalos do meio da semana: leads quentes vs. comparecimento.'
+        };
+      case 4:
+        return {
+          titulo: 'Plantão de Dúvidas TráfegON',
+          horario: '15:00 - 16:00',
+          escopo: 'Semanal',
+          desc: 'Plantão direto de suporte técnico para gerentes configurarem campanhas de direct.'
+        };
+      case 5:
+        return {
+          titulo: 'Reunião de Fechamento de Vendas',
+          horario: '16:00 - 17:00',
+          escopo: 'Semanal',
+          desc: 'Avaliação dos resultados gerados e otimização da escala de plantoneiras de sábado.'
+        };
+      default:
+        return null;
+    }
+  }, [targetDayOfWeek]);
+
+  // Evento Mensal de Hoje
+  const isMeioDoMes = selectedDate.endsWith('-15');
+  const isUltimoDiaDoMes = useMemo(() => {
+    const parts = selectedDate.split('-');
+    if (parts.length < 3) return false;
+    const y = Number(parts[0]);
+    const m = Number(parts[1]);
+    const d = Number(parts[2]);
+    const nextDay = new Date(y, m - 1, d + 1);
+    return nextDay.getDate() === 1;
+  }, [selectedDate]);
+
+  const eventoMensalHoje = useMemo(() => {
+    if (isMeioDoMes) {
+      return {
+        titulo: 'Análise Quinzena CRM & Metas',
+        horario: 'O dia todo',
+        desc: 'Revisão das taxas de conformidade e rituais TráfegON de todas as clínicas da sócia.'
+      };
+    }
+    if (isUltimoDiaDoMes) {
+      return {
+        titulo: 'Fechamento e Apuração Geral do Mês',
+        horario: 'O dia todo',
+        desc: 'Relatório global consolidado de leads e rituais digitais. Liberação de prêmios.'
+      };
+    }
+    return null;
+  }, [isMeioDoMes, isUltimoDiaDoMes]);
 
   const displayUnits = useMemo(() => {
     return activeUnits.filter(unit => {
@@ -616,10 +746,11 @@ export default function HojeView({
           </button>
         </div>
       ) : (
-        <>
-          {/* ========================================================
-              1. DESKTOP VIEW: TABELA EXECUTIVA / CONTROL BOARD 
-              ======================================================== */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div className="lg:col-span-8 space-y-6">
+            {/* ========================================================
+                1. DESKTOP VIEW: TABELA EXECUTIVA / CONTROL BOARD 
+                ======================================================== */}
           <div className="hidden lg:block bg-[#141414] border border-[#212121] rounded-2xl shadow-xl overflow-hidden">
             <div className="p-4 bg-[#181818] border-b border-[#212121] flex justify-between items-center select-none">
               <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1">
@@ -637,11 +768,7 @@ export default function HojeView({
                     <th className="py-3 px-4 text-left font-extrabold">Unidade</th>
                     <th className="py-3 px-4 text-center font-extrabold">% Ok</th>
                     <th className="py-3 px-3 text-center">Story 1<span className="block text-[8px] text-gray-500 font-mono">09h</span></th>
-                    <th className="py-3 px-3 text-center">Story 2<span className="block text-[8px] text-gray-500 font-mono">14h</span></th>
-                    <th className="py-3 px-3 text-center">Story 3<span className="block text-[8px] text-gray-500 font-mono">18h</span></th>
-                    <th className="py-3 px-3 text-center">Insta Nota<span className="block text-[8px] text-gray-500 font-mono">11h</span></th>
-                    <th className="py-3 px-3 text-center">Story Real<span className="block text-[8px] text-gray-500 font-mono">12h</span></th>
-                    <th className="py-3 px-3 text-center">Bastidor<span className="block text-[8px] text-gray-500 font-mono">16h</span></th>
+                    <th className="py-3 px-3 text-center">Insira Nota<span className="block text-[8px] text-gray-500 font-mono">11h</span></th>
                     {isPostagemFieldDay && (
                       <th className="py-3 px-3 text-center text-indigo-400">Feed Principal<span className="block text-[8px] text-indigo-500 font-mono">12h</span></th>
                     )}
@@ -656,11 +783,7 @@ export default function HojeView({
 
                     // Dynamic column status retrieval
                     const s1St = getTaskStatus(unit.id, 'story-1', selectedDate, '09:00');
-                    const s2St = getTaskStatus(unit.id, 'story-2', selectedDate, '14:00');
-                    const s3St = getTaskStatus(unit.id, 'story-3', selectedDate, '18:00');
                     const instSt = getTaskStatus(unit.id, 'nota-instagram', selectedDate, '11:00');
-                    const realSt = getTaskStatus(unit.id, 'story-real', selectedDate, '12:00');
-                    const bastSt = getTaskStatus(unit.id, 'bastidor', selectedDate, '16:00');
                     const feedSt = isPostagemFieldDay ? getTaskStatus(unit.id, 'postagem-principal', selectedDate, '12:00') : 'nao_se_aplica';
 
                     return (
@@ -689,11 +812,7 @@ export default function HojeView({
                         {/* Interactive columns (Single click completes, right click opens helper) */}
                         {[
                           { id: 'story-1', st: s1St },
-                          { id: 'story-2', st: s2St },
-                          { id: 'story-3', st: s3St },
                           { id: 'nota-instagram', st: instSt },
-                          { id: 'story-real', st: realSt },
-                          { id: 'bastidor', st: bastSt },
                           ...(isPostagemFieldDay ? [{ id: 'postagem-principal', st: feedSt }] : [])
                         ].map(col => {
                           const cycle = (e: React.MouseEvent) => {
@@ -711,7 +830,7 @@ export default function HojeView({
                                 onClick={cycle}
                                 onContextMenu={openNavNA}
                                 className={`w-20 mx-auto px-1 py-1 text-[9px] font-extrabold rounded-lg uppercase tracking-wider text-center border focus:outline-none cursor-pointer transition-all duration-100 flex flex-col justify-center items-center shadow-xs ${getStatusVisualClasses(col.st as any)}`}
-                                title="Clique: Alterna Ok/Pend. Botão Direito: Marca como Não se Aplica."
+                                title="Clique: Alterna entre Em Dia, N/A e Pendente. Botão Direito: Marca como Não se Aplica."
                               >
                                 {col.st === 'executado' ? (
                                   <span className="flex items-center gap-0.5 text-emerald-400">
@@ -852,10 +971,20 @@ export default function HojeView({
                                 className={`px-2 py-1 rounded text-[9.5px] font-black uppercase shadow-xs transition-all cursor-pointer ${
                                   currentStatus === 'executado' 
                                     ? 'bg-emerald-600 hover:bg-emerald-500 text-black' 
+                                    : currentStatus === 'nao_se_aplica'
+                                    ? 'bg-zinc-700 hover:bg-zinc-650 text-white'
+                                    : currentStatus === 'atrasado'
+                                    ? 'bg-rose-600 hover:bg-rose-500 text-white'
                                     : 'bg-indigo-650 hover:bg-indigo-700 text-white'
                                 }`}
                               >
-                                {currentStatus === 'executado' ? 'Concluído' : 'Confirmar'}
+                                {currentStatus === 'executado' 
+                                  ? 'Concluído' 
+                                  : currentStatus === 'nao_se_aplica' 
+                                  ? 'N/A' 
+                                  : currentStatus === 'atrasado' 
+                                  ? 'Crítico' 
+                                  : 'Confirmar'}
                               </button>
 
                               {!task.isPendency && (
@@ -922,7 +1051,196 @@ export default function HojeView({
               );
             })}
           </div>
-        </>
+        </div>
+
+        {/* ========================================================
+            AGÊNDA DE MARKETING, LIVES E EVENTOS ROTINEIROS (Seg/Qua/Sex)
+            ======================================================== */}
+        <div className="lg:col-span-4 space-y-6">
+          {/* Postagem do Dia Card */}
+          <div className="bg-[#141414] border border-[#212121] rounded-2xl p-5 relative overflow-hidden shadow-xl text-left space-y-4">
+            <div className="flex items-center justify-between border-b border-[#212121]/50 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="p-2 rounded-lg bg-indigo-950/40 border border-indigo-900/30 text-indigo-400">
+                  <MessageSquare className="w-4 h-4" />
+                </span>
+                <div>
+                  <h4 className="text-xs font-black text-white uppercase tracking-wider">Posts de Feed Sazonais</h4>
+                  <span className="text-[10px] text-gray-500 font-mono font-medium">Cronograma Semanal (Seg/Qua/Sex)</span>
+                </div>
+              </div>
+              <span className={`px-2 py-0.5 rounded text-[9px] font-mono font-black ${
+                isPostagemFieldDay 
+                  ? 'bg-emerald-950/45 text-emerald-400 border border-emerald-900/30 animate-pulse' 
+                  : 'bg-zinc-900 text-zinc-555 border border-zinc-800'
+              }`}>
+                {isPostagemFieldDay ? '● DIA DE POST' : 'SEM POST DE FEED'}
+              </span>
+            </div>
+
+            {isPostagemFieldDay ? (
+              <div className="space-y-3">
+                <div className="p-3 bg-indigo-950/10 border border-indigo-900/20 rounded-xl space-y-1">
+                  <span className="text-[10px] uppercase font-mono font-black text-indigo-400 block">Tipo & Formato</span>
+                  <strong className="text-xs font-extrabold text-white block">{postagemSugestao.tema}</strong>
+                  <span className="inline-block px-1.5 py-0.2 bg-zinc-900 text-gray-400 text-[9px] border border-zinc-850 rounded font-bold mt-1">{postagemSugestao.tipo}</span>
+                </div>
+
+                <div className="text-[11px] text-gray-400 leading-relaxed bg-zinc-900 p-3 rounded-xl border border-zinc-850">
+                  <span className="text-[9px] font-black uppercase text-gray-500 block mb-1">Diretriz Criativa</span>
+                  {postagemSugestao.descricao}
+                </div>
+
+                <div className="space-y-1.5">
+                  <span className="text-[9px] font-black uppercase text-gray-500 block">Legenda Sugerida para Cópia</span>
+                  <div className="relative">
+                    <pre className="text-[10px] text-gray-200 bg-zinc-950 p-3 rounded-xl font-sans whitespace-pre-wrap leading-relaxed max-h-[140px] overflow-y-auto pr-12">
+                      {postagemSugestao.copy}
+                    </pre>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(postagemSugestao.copy);
+                        setCopyCaptionSuccess(true);
+                        setTimeout(() => setCopyCaptionSuccess(false), 2000);
+                      }}
+                      className="absolute top-2 right-2 px-2 py-1 bg-zinc-900 hover:bg-zinc-850 border border-zinc-805 hover:border-zinc-700 text-emerald-450 rounded-lg text-[9px] font-bold font-mono transition-all cursor-pointer shadow-xs"
+                      title="Copiar legenda sugerida"
+                    >
+                      {copyCaptionSuccess ? 'Copiado!' : 'Copiar'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 bg-zinc-950/20 border border-zinc-900/40 rounded-xl space-y-2 text-center text-xs">
+                <span className="text-gray-500 block text-2xl">🌱</span>
+                <strong className="text-white block font-extrabold text-[11px]">Estratégia Orgânica de Stories de Hoje</strong>
+                <p className="text-[10px] text-gray-500 leading-normal">
+                  Sem publicação de Feed obrigatória hoje! Foque no engajamento por enquetes, bastidores da recepção, perguntas interativas no direct e postagem na Nota do Instagram às 11:00h.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Agenda de Eventos e Reuniões Card */}
+          <div className="bg-[#141414] border border-[#212121] rounded-2xl p-5 relative overflow-hidden shadow-xl text-left space-y-4">
+            <div className="flex items-center gap-2 border-b border-[#212121]/50 pb-3">
+              <span className="p-2 rounded-lg bg-indigo-950/40 border border-indigo-900/30 text-indigo-400">
+                <CalendarRange className="w-4 h-4" />
+              </span>
+              <div>
+                <h4 className="text-xs font-black text-white uppercase tracking-wider">Eventos do Dia & Alinhamentos</h4>
+                <span className="text-[10px] text-gray-500 font-mono font-medium">Reuniões Semanais e Balanços</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {/* Evento Semanal */}
+              {eventoSemanalHoje ? (
+                <div className="p-3 bg-zinc-900/40 border border-zinc-850 rounded-xl space-y-1.5 text-left">
+                  <div className="flex items-center justify-between">
+                    <span className="px-1.5 py-0.2 bg-indigo-950/30 text-indigo-400 border border-indigo-900/30 text-[9px] rounded font-bold uppercase font-mono">
+                      📅 Semanal
+                    </span>
+                    <span className="text-[9px] text-gray-400 font-mono font-bold flex items-center gap-1">
+                      <Clock className="w-2.5 h-2.5 text-zinc-500" /> {eventoSemanalHoje.horario}
+                    </span>
+                  </div>
+                  <strong className="text-xs font-bold text-white block mt-1">{eventoSemanalHoje.titulo}</strong>
+                  <p className="text-[10px] text-gray-500 leading-normal">{eventoSemanalHoje.desc}</p>
+                </div>
+              ) : null}
+
+              {/* Evento Mensal */}
+              {eventoMensalHoje ? (
+                <div className="p-3 bg-amber-955/5 border border-amber-900/20 rounded-xl space-y-1.5 text-left">
+                  <div className="flex items-center justify-between">
+                    <span className="px-1.5 py-0.2 bg-amber-955/20 text-amber-500 border border-amber-900/30 text-[9px] rounded font-bold uppercase font-mono">
+                      🏆 Evento Mensal
+                    </span>
+                    <span className="text-[9px] text-gray-400 font-mono font-bold flex items-center gap-1">
+                      <Clock className="w-2.5 h-2.5 text-zinc-500" /> {eventoMensalHoje.horario}
+                    </span>
+                  </div>
+                  <strong className="text-xs font-bold text-amber-400 block mt-1">{eventoMensalHoje.titulo}</strong>
+                  <p className="text-[10px] text-gray-500 leading-normal">{eventoMensalHoje.desc}</p>
+                </div>
+              ) : null}
+
+              {!eventoSemanalHoje && !eventoMensalHoje ? (
+                <div className="text-[10px] text-gray-500 italic text-center py-2">
+                  Nenhum alinhamento, reunião ou plantão rotineiro previsto para este dia da semana.
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Sazonal / Cronograma de Lives Card */}
+          <div className="bg-[#141414] border border-[#212121] rounded-2xl p-5 relative overflow-hidden shadow-xl text-left space-y-4">
+            <div className="flex items-center gap-2 border-b border-[#212121]/50 pb-3">
+              <span className="p-2 rounded-lg bg-indigo-950/40 border border-indigo-900/30 text-indigo-400">
+                <BookOpen className="w-4 h-4" />
+              </span>
+              <div>
+                <h4 className="text-xs font-black text-white uppercase tracking-wider">Cronograma de Lives</h4>
+                <span className="text-[10px] text-gray-500 font-mono font-medium">Transmissões Sazonais 2026</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {liveAgendadaHoje ? (
+                <div className="p-3 bg-[#1d1b10] border border-amber-955/35 rounded-xl space-y-1.5 text-left">
+                  <div className="flex items-center justify-between">
+                    <span className="px-1.5 py-0.5 bg-amber-550 text-black text-[9px] rounded font-black uppercase font-mono tracking-wider animate-pulse">
+                      🎥 LIVE HOJE
+                    </span>
+                    <span className="text-[9.5px] text-amber-400 font-black font-mono">
+                      ⏱️ {liveAgendadaHoje.horario}h
+                    </span>
+                  </div>
+                  <strong className="text-xs font-extrabold text-white block mt-1">
+                    [{liveAgendadaHoje.sigla}] - {liveAgendadaHoje.unidade}
+                  </strong>
+                  <p className="text-[10px] text-gray-400 leading-normal mt-1">
+                    Hoje é o dia de transmissão desta unidade local! Lembre a gerente de garantir o sinal de internet, realizar o teste técnico e avisar as clientes nos stories.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 bg-zinc-900/30 border border-zinc-850 rounded-xl text-zinc-500 text-[10px] leading-relaxed text-center">
+                  Não há transmissão de live oficial agendada para hoje ({formatShortDate(selectedDate)}).
+                </div>
+              )}
+
+              {/* Proximas lives do mes */}
+              <div className="space-y-2 pt-1.5">
+                <span className="text-[9px] uppercase font-mono font-black text-gray-500 block">Outras Lives Previstas no Mês</span>
+                {proximasLivesDoMes.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {proximasLivesDoMes.map((item, index) => (
+                      <div key={index} className="p-2.5 bg-zinc-950/50 border border-zinc-900 rounded-xl flex items-center justify-between text-xs text-left">
+                        <div className="truncate pr-2">
+                          <strong className="text-gray-300 font-bold block text-[10.5px]">
+                            {item.unidade} ({item.sigla})
+                          </strong>
+                          <span className="text-[9px] text-gray-500 font-mono">{item.data}</span>
+                        </div>
+                        <span className="px-2 py-0.5 bg-zinc-900 text-zinc-400 border border-zinc-800 rounded font-mono text-[9px] shrink-0 font-bold">
+                          {item.horario}h
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-[9.5px] text-gray-500 italic text-center py-1">
+                    Sem mais lives oficiais mapeadas para o restante deste mês.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       )}
 
       {/* ========================================================

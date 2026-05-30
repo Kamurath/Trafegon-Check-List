@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { QuickSuggestion } from '../types';
-import { Sparkles, Copy, Check, Heart, RefreshCw, Edit2, Trash2, Plus, Search, Filter, ListCollapse, Star } from 'lucide-react';
+import { Sparkles, Copy, Check, Heart, RefreshCw, Edit2, Trash2, Plus, Search, Filter, ListCollapse, Star, Wand2, CalendarDays, Loader2, AlertTriangle, Inbox } from 'lucide-react';
 
 interface SugestoesRapidasViewProps {
   suggestions: QuickSuggestion[];
@@ -8,9 +8,19 @@ interface SugestoesRapidasViewProps {
 }
 
 export default function SugestoesRapidasView({ suggestions, onUpdateSuggestions }: SugestoesRapidasViewProps) {
-  // Tabs: 'gerador' | 'todos' | 'favoritos'
-  const [activeTab, setActiveTab] = useState<'gerador' | 'todos' | 'favoritos'>('gerador');
+  // Tabs: 'gerador' | 'ia' | 'todos' | 'favoritos'
+  const [activeTab, setActiveTab] = useState<'gerador' | 'ia' | 'todos' | 'favoritos'>('gerador');
   
+  // AI Generator states
+  const [iaSelectedTheme, setIaSelectedTheme] = useState<string>('dia_namorados');
+  const [iaCustomTheme, setIaCustomTheme] = useState<string>('');
+  const [iaLoading, setIaLoading] = useState<boolean>(false);
+  const [iaLoadingStep, setIaLoadingStep] = useState<string>('');
+  const [iaError, setIaError] = useState<string>('');
+  const [iaResult, setIaResult] = useState<{ notas: string[]; stories: string[]; reels: string[] } | null>(null);
+  const [iaSuccessMessage, setIaSuccessMessage] = useState<string>('');
+  const [importedStatus, setImportedStatus] = useState<Record<string, boolean>>({});
+
   // Search and Filtering inside 'todos' and 'favoritos'
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('todos');
@@ -153,6 +163,152 @@ export default function SugestoesRapidasView({ suggestions, onUpdateSuggestions 
     onUpdateSuggestions(updated);
     setNewText('');
     setShowAddForm(false);
+  };
+
+  // -------------------------------------------------------------
+  // AI SUGGESTION GENERATOR SYSTEM (Gemini-3.5-Flash)
+  // -------------------------------------------------------------
+  const getThemeText = (themeKey: string) => {
+    switch (themeKey) {
+      case 'dia_namorados': return 'Dia dos Namorados';
+      case 'copa_mundo': return 'Copa do Mundo';
+      case 'festa_junina': return 'Festa Junina';
+      case 'natal': return 'Natal';
+      case 'ano_novo': return 'Ano Novo';
+      case 'dia_maes': return 'Dia das Mães';
+      case 'dia_pais': return 'Dia dos Pais';
+      case 'black_friday': return 'Black Friday';
+      case 'dia_cliente': return 'Dia do Cliente';
+      default: return iaCustomTheme || 'Sazonal';
+    }
+  };
+
+  const handleGenerateAISuggestions = async () => {
+    setIaError('');
+    setIaLoading(true);
+    setIaResult(null);
+    setImportedStatus({});
+    
+    const theme = iaSelectedTheme === 'custom' ? iaCustomTheme.trim() : getThemeText(iaSelectedTheme);
+    if (iaSelectedTheme === 'custom' && !iaCustomTheme.trim()) {
+      setIaError('Escreva um tema ou palavra-chave para a IA gerar.');
+      setIaLoading(false);
+      return;
+    }
+
+    // Step indicators to enrich user loading experience
+    const steps = [
+      'Contatando o cérebro criativo da Agência TráfegON...',
+      'Invocando a IA do Gemini (rápido e econômico)...',
+      'Estudando o calendário de marketing da Espaçolaser...',
+      'Formatando copywriting com ganchos persuasivos...',
+      'Refinando limites de caracteres para Instagram Notas...',
+      'Finalizando empacotamento das sugestões diárias...'
+    ];
+
+    let currentStepIdx = 0;
+    setIaLoadingStep(steps[currentStepIdx]);
+    const stepInterval = setInterval(() => {
+      if (currentStepIdx < steps.length - 1) {
+        currentStepIdx++;
+        setIaLoadingStep(steps[currentStepIdx]);
+      }
+    }, 1200);
+
+    try {
+      const response = await fetch('/api/generate-suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme }),
+      });
+
+      clearInterval(stepInterval);
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Erro de rede ao processar sugestão (código: ${response.status})`);
+      }
+
+      const data = await response.json();
+      if (!data || !data.notas || !data.stories || !data.reels) {
+        throw new Error('Retorno do servidor está incompleto ou inválido. Tente novamente.');
+      }
+
+      setIaResult(data);
+    } catch (err: any) {
+      clearInterval(stepInterval);
+      setIaError(err.message || 'Houve um erro ao se conectar com o serviço de IA. Verifique as configurações de secrets.');
+    } finally {
+      setIaLoading(false);
+      setIaLoadingStep('');
+    }
+  };
+
+  const handleImportAISuggestion = (text: string, type: 'nota' | 'story' | 'reels', uniqueKey: string) => {
+    const category = type === 'nota' ? 'comerciais' : (type === 'story' ? 'story' : 'reels');
+    
+    const newSug: QuickSuggestion = {
+      id: `sug_custom_ia_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      text: text,
+      type: type,
+      category: category,
+      isFavorite: false
+    };
+
+    const updated = [...suggestions, newSug];
+    onUpdateSuggestions(updated);
+
+    setImportedStatus(prev => ({ ...prev, [uniqueKey]: true }));
+    setIaSuccessMessage('Adicionado ao seu Banco local!');
+    setTimeout(() => setIaSuccessMessage(''), 2500);
+  };
+
+  const handleImportAllAISuggestions = () => {
+    if (!iaResult) return;
+    
+    const newItems: QuickSuggestion[] = [];
+    
+    iaResult.notas.forEach((text, i) => {
+      newItems.push({
+        id: `sug_custom_ia_bulk_${Date.now()}_n${i}`,
+        text: text,
+        type: 'nota',
+        category: 'comerciais',
+        isFavorite: false
+      });
+    });
+
+    iaResult.stories.forEach((text, i) => {
+      newItems.push({
+        id: `sug_custom_ia_bulk_${Date.now()}_s${i}`,
+        text: text,
+        type: 'story',
+        category: 'story',
+        isFavorite: false
+      });
+    });
+
+    iaResult.reels.forEach((text, i) => {
+      newItems.push({
+        id: `sug_custom_ia_bulk_${Date.now()}_r${i}`,
+        text: text,
+        type: 'reels',
+        category: 'reels',
+        isFavorite: false
+      });
+    });
+
+    const updated = [...suggestions, ...newItems];
+    onUpdateSuggestions(updated);
+
+    const statusMap: Record<string, boolean> = {};
+    iaResult.notas.forEach((_, i) => statusMap[`nota-${i}`] = true);
+    iaResult.stories.forEach((_, i) => statusMap[`story-${i}`] = true);
+    iaResult.reels.forEach((_, i) => statusMap[`reels-${i}`] = true);
+    
+    setImportedStatus(statusMap);
+    setIaSuccessMessage('Todas as sugestões foram importadas ao seu Banco local!');
+    setTimeout(() => setIaSuccessMessage(''), 3000);
   };
 
   // Copy action helper
@@ -314,16 +470,26 @@ export default function SugestoesRapidasView({ suggestions, onUpdateSuggestions 
       )}
 
       {/* Main Nav Sub-Tabs */}
-      <div className="flex border-b border-[#1F1F1F] gap-2 select-none">
+      <div className="flex border-b border-[#1F1F1F] gap-2 select-none overflow-x-auto no-scrollbar">
         <button
           onClick={() => setActiveTab('gerador')}
-          className={`px-4 py-2 text-xs font-black border-b-2 transition-all cursor-pointer ${
+          className={`px-4 py-2 text-xs font-black border-b-2 transition-all cursor-pointer whitespace-nowrap ${
             activeTab === 'gerador'
               ? 'border-amber-500 text-white'
               : 'border-transparent text-gray-500 hover:text-gray-300'
           }`}
         >
           🎰 Sorteador Rápido
+        </button>
+        <button
+          onClick={() => setActiveTab('ia')}
+          className={`px-4 py-2 text-xs font-black border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === 'ia'
+              ? 'border-violet-500 text-white'
+              : 'border-transparent text-gray-500 hover:text-gray-300'
+          }`}
+        >
+          ✨ Gerador de IA (Sazonal)
         </button>
         <button
           onClick={() => setActiveTab('todos')}
@@ -596,6 +762,356 @@ export default function SugestoesRapidasView({ suggestions, onUpdateSuggestions 
               Use frases com até 45-55 caracteres, tom leve, direto e de proximidade com o cliente. Evite termos difíceis, hashtags, emojis e promessas miraculosas em letras garrafais.
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ====================================================================== */}
+      {/* TAB: GENERATOR DE IA (SAZONAL)                                         */}
+      {/* ====================================================================== */}
+      {activeTab === 'ia' && (
+        <div className="space-y-6 animate-fadeIn">
+          
+          {/* Main Controls & Banner */}
+          <div className="bg-[#141414] border border-[#212121] rounded-2xl p-6 relative overflow-hidden shadow-xl">
+            {/* Ambient Purple glow decoration */}
+            <div className="absolute top-0 right-0 w-80 h-80 bg-violet-600/10 blur-3xl pointer-events-none rounded-full" />
+            
+            <div className="relative z-10 space-y-5">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-violet-950/30 border border-violet-800/30 rounded-2xl text-violet-400">
+                  <Wand2 className="w-6 h-6 animate-pulse" />
+                </div>
+                <div className="space-y-1 text-left">
+                  <span className="text-[10px] font-bold font-mono text-violet-400 uppercase tracking-widest block">Geração Inteligente Especial de Época</span>
+                  <h3 className="text-lg font-display font-black text-white">Criatividade Instantânea com Inteligência Artificial</h3>
+                  <p className="text-xs text-gray-400 max-w-2xl leading-relaxed">
+                    Sincronize sua comunicação com as épocas mais quentes do ano! Deixe o Gemini planejar ideias magnéticas de Notas do Instagram, frases interativas para Stories e ganchos de Reels sob medida para sua Espaçolaser.
+                  </p>
+                </div>
+              </div>
+
+              {/* Grid of Season Selectors */}
+              <div className="space-y-3 pt-2 text-left">
+                <label className="block text-[11px] font-black text-gray-450 uppercase tracking-wider mb-2">Selecione a Época do Ano / Evento Temático</label>
+                
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                  {[
+                    { id: 'dia_namorados', label: '💝 Dia dos Namorados' },
+                    { id: 'festa_junina', label: '🌽 Festa Junina' },
+                    { id: 'black_friday', label: '🏷️ Black Friday' },
+                    { id: 'natal', label: '🎄 Natal / Fim de Ano' },
+                    { id: 'ano_novo', label: '🥂 Ano Novo' },
+                    { id: 'dia_maes', label: '👩‍👧 Dia das Mães' },
+                    { id: 'dia_pais', label: '👨‍👦 Dia dos Pais' },
+                    { id: 'dia_cliente', label: '🤝 Dia do Cliente' },
+                    { id: 'copa_mundo', label: '⚽ Copa do Mundo' },
+                    { id: 'custom', label: '✏️ Outro Tema...' },
+                  ].map((season) => (
+                    <button
+                      key={season.id}
+                      type="button"
+                      onClick={() => setIaSelectedTheme(season.id)}
+                      className={`p-3 rounded-xl border text-xs font-bold transition-all text-left flex flex-col justify-between cursor-pointer min-h-[56px] ${
+                        iaSelectedTheme === season.id
+                          ? 'bg-violet-950/20 border-violet-550 text-white shadow-md shadow-violet-950/20'
+                          : 'bg-[#18181B]/50 border-[#27272A] hover:border-violet-900/30 text-gray-400 hover:text-white hover:bg-[#1E1E24]/50'
+                      }`}
+                    >
+                      <span className="leading-tight">{season.label}</span>
+                      {iaSelectedTheme === season.id && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-violet-400 self-end mt-1" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Custom input details */}
+              {iaSelectedTheme === 'custom' && (
+                <div className="space-y-1.5 text-left animate-fadeIn">
+                  <label className="block text-[10px] font-bold text-gray-405 uppercase">Escreva o Tema ou Evento Customizado</label>
+                  <input
+                    type="text"
+                    value={iaCustomTheme}
+                    onChange={(e) => setIaCustomTheme(e.target.value)}
+                    placeholder="Ex: Halloween da Beleza, Dia Internacional da Mulher, Inauguração de Filial..."
+                    className="w-full max-w-xl bg-[#1A1A1E] text-xs text-white border border-[#2D2D35] rounded-xl px-4 py-3 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                  />
+                </div>
+              )}
+
+              {/* Shimmer generate button */}
+              <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  disabled={iaLoading}
+                  onClick={handleGenerateAISuggestions}
+                  className="px-6 py-3.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-violet-955/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border border-violet-500/30"
+                >
+                  {iaLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Processando com IA...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="w-4 h-4 text-violet-200" />
+                      Gerar Sugestões via IA Sazonal
+                    </>
+                  )}
+                </button>
+                <span className="text-[11px] text-gray-500 font-medium">
+                  {iaLoading ? 'Aguarde alguns segundos' : 'Gera de forma inteligente e armazena em cache instantâneo.'}
+                </span>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Success / Info Alerts */}
+          {iaSuccessMessage && (
+            <div className="p-3.5 bg-emerald-950/20 border border-emerald-900/30 text-emerald-400 rounded-xl text-xs font-bold font-sans text-center animate-bounce">
+              🎉 {iaSuccessMessage}
+            </div>
+          )}
+
+          {/* Error notice */}
+          {iaError && (
+            <div className="flex gap-3 bg-rose-950/10 border border-rose-900/30 p-4 rounded-xl text-xs text-left leading-relaxed">
+              <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+              <div className="space-y-1 text-gray-300">
+                <strong className="text-rose-400 block font-black uppercase tracking-wider text-[10px]">Falha na Sincronização de IA</strong>
+                <p>{iaError}</p>
+                <p className="text-gray-500 text-[11px] font-sans mt-1">
+                  Certifique-se de carregar sua chave <strong>GEMINI_API_KEY</strong> de API no painel de Segredos/Secrets no AI Studio.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Interactive loading state placeholder */}
+          {iaLoading && (
+            <div className="bg-[#141414] border border-[#212121] rounded-2xl p-12 text-center text-gray-400 shadow-lg flex flex-col items-center justify-center space-y-4 animate-pulse">
+              <Loader2 className="w-10 h-10 text-violet-500 animate-spin" />
+              <div className="space-y-1">
+                <p className="font-bold text-white text-sm">Gerando sugestões sazonais...</p>
+                <p className="text-xs text-violet-400 font-mono italic">{iaLoadingStep}</p>
+              </div>
+              <div className="w-48 h-1.5 bg-[#1C1C24] rounded-full overflow-hidden">
+                <div className="h-full bg-violet-500 animate-progress w-2/3 rounded-full" />
+              </div>
+            </div>
+          )}
+
+          {/* AI Generation Results Display */}
+          {iaResult && !iaLoading && (
+            <div className="space-y-6 animate-fadeIn">
+              
+              {/* Results Control and Bulk import */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-violet-950/10 border border-violet-900/10 p-4 rounded-xl">
+                <div className="text-left">
+                  <h4 className="text-xs font-black text-violet-400 uppercase tracking-widest font-mono">Resultados Pronto para Uso</h4>
+                  <p className="text-[11px] text-gray-400 mt-0.5 font-sans">Foram geradas 9 sugestões temáticas personalizadas baseadas no tema selecionado.</p>
+                </div>
+                
+                <button
+                  type="button"
+                  onClick={handleImportAllAISuggestions}
+                  className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white font-extrabold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-all self-start sm:self-auto cursor-pointer shadow-sm shadow-violet-955/20 border border-violet-500"
+                >
+                  <Inbox className="w-3.5 h-3.5" />
+                  Importar Tudo ao Banco Local
+                </button>
+              </div>
+
+              {/* Three Column Results Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                
+                {/* COLUMN 1: NOTAS INSTAGRAM */}
+                <div className="bg-[#141414] border border-[#212121] rounded-2xl p-5 space-y-4 text-left">
+                  <div className="border-b border-[#212121] pb-3 flex items-center justify-between">
+                    <div>
+                      <h4 className="font-display font-black text-sm text-white">Notas de Instagram</h4>
+                      <p className="text-gray-550 text-[10px] mt-0.5 font-sans">Até 45-50 caracteres, simples e diretos</p>
+                    </div>
+                    <span className="px-2 py-0.5 bg-amber-950/20 text-amber-400 border border-amber-900/30 rounded text-[9px] font-black uppercase">Nota</span>
+                  </div>
+
+                  <div className="space-y-3.5">
+                    {iaResult.notas.map((notaStr, index) => {
+                      const isValidLength = notaStr.length <= 50;
+                      const uniqueKey = `nota-${index}`;
+                      const isImported = importedStatus[uniqueKey];
+
+                      return (
+                        <div 
+                          key={uniqueKey} 
+                          className="bg-[#191919]/40 hover:bg-[#1E1E24]/30 border border-[#26262B] hover:border-violet-900/20 rounded-xl p-3.5 space-y-3 relative group transition-all"
+                        >
+                          <p className="text-xs font-medium text-gray-250 leading-relaxed font-sans">
+                            "{notaStr}"
+                          </p>
+
+                          <div className="flex items-center justify-between text-[10px] font-mono border-t border-[#222] pt-2 text-gray-500">
+                            <span className={isValidLength ? 'text-emerald-500' : 'text-amber-500'}>
+                              {notaStr.length} chars {isValidLength ? '✅ OK' : '⚠️ Longo'}
+                            </span>
+
+                            <div className="flex items-center gap-2">
+                              {/* Copy */}
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(notaStr);
+                                  setCopiedId(uniqueKey);
+                                  setTimeout(() => setCopiedId(null), 1500);
+                                }}
+                                className="p-1 px-1.5 hover:bg-[#25252D] rounded text-gray-400 hover:text-white transition-all cursor-pointer flex items-center gap-1 border border-transparent hover:border-[#2C2C35] font-sans text-[9px]"
+                              >
+                                {copiedId === uniqueKey ? <Check className="w-3 h-3 text-emerald-450" /> : <Copy className="w-3 h-3" />}
+                                {copiedId === uniqueKey ? 'Pronto' : 'Copiar'}
+                              </button>
+
+                              {/* Import */}
+                              <button
+                                disabled={isImported}
+                                onClick={() => handleImportAISuggestion(notaStr, 'nota', uniqueKey)}
+                                className={`p-1 px-1.5 rounded transition-all flex items-center gap-1 font-sans text-[9px] cursor-pointer ${
+                                  isImported 
+                                    ? 'text-gray-650 opacity-40 cursor-default' 
+                                    : 'text-violet-400 hover:text-violet-300 hover:bg-[#25252D] border border-transparent hover:border-[#2C2C35]'
+                                }`}
+                              >
+                                {isImported ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                                {isImported ? 'Importada' : 'Salvar'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* COLUMN 2: IDEIAS DE STORIES */}
+                <div className="bg-[#141414] border border-[#212121] rounded-2xl p-5 space-y-4 text-left">
+                  <div className="border-b border-[#212121] pb-3 flex items-center justify-between">
+                    <div>
+                      <h4 className="font-display font-black text-sm text-white">Ideias para Stories</h4>
+                      <p className="text-gray-550 text-[10px] mt-0.5 font-sans">Estimula enquetes e respostas de direct</p>
+                    </div>
+                    <span className="px-2 py-0.5 bg-[#1c182d] text-[#a486ff] border border-violet-900/30 rounded text-[9px] font-black uppercase">Story</span>
+                  </div>
+
+                  <div className="space-y-3.5">
+                    {iaResult.stories.map((storyStr, index) => {
+                      const uniqueKey = `story-${index}`;
+                      const isImported = importedStatus[uniqueKey];
+
+                      return (
+                        <div 
+                          key={uniqueKey} 
+                          className="bg-[#191919]/40 hover:bg-[#1E1E24]/30 border border-[#26262B] hover:border-violet-900/20 rounded-xl p-3.5 space-y-3 relative group transition-all"
+                        >
+                          <p className="text-xs font-semibold text-gray-250 leading-normal font-sans">
+                            {storyStr}
+                          </p>
+
+                          <div className="flex items-center justify-end text-[10px] font-mono border-t border-[#222] pt-2 text-gray-500 gap-2">
+                            {/* Copy */}
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(storyStr);
+                                setCopiedId(uniqueKey);
+                                  setTimeout(() => setCopiedId(null), 1500);
+                              }}
+                              className="p-1 px-1.5 hover:bg-[#25252D] rounded text-gray-400 hover:text-white transition-all cursor-pointer flex items-center gap-1 border border-transparent hover:border-[#2C2C35] font-sans text-[9px]"
+                            >
+                              {copiedId === uniqueKey ? <Check className="w-3 h-3 text-emerald-450" /> : <Copy className="w-3 h-3" />}
+                              {copiedId === uniqueKey ? 'Pronto' : 'Copiar'}
+                            </button>
+
+                            {/* Import */}
+                            <button
+                              disabled={isImported}
+                              onClick={() => handleImportAISuggestion(storyStr, 'story', uniqueKey)}
+                              className={`p-1 px-1.5 rounded transition-all flex items-center gap-1 font-sans text-[9px] cursor-pointer ${
+                                isImported 
+                                  ? 'text-gray-650 opacity-40 cursor-default' 
+                                  : 'text-violet-400 hover:text-violet-300 hover:bg-[#25252D] border border-transparent hover:border-[#2C2C35]'
+                              }`}
+                            >
+                              {isImported ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                              {isImported ? 'Importada' : 'Salvar'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* COLUMN 3: REELS HOOKS */}
+                <div className="bg-[#141414] border border-[#212121] rounded-2xl p-5 space-y-4 text-left">
+                  <div className="border-b border-[#212121] pb-3 flex items-center justify-between">
+                    <div>
+                      <h4 className="font-display font-black text-sm text-white">Temas de Reels</h4>
+                      <p className="text-gray-550 text-[10px] mt-0.5 font-sans">Ganchos curtos para segurar público</p>
+                    </div>
+                    <span className="px-2 py-0.5 bg-[#25122b]/40 text-[#f55fff] border border-pink-900/30 rounded text-[9px] font-black uppercase">Reels</span>
+                  </div>
+
+                  <div className="space-y-3.5">
+                    {iaResult.reels.map((reelsStr, index) => {
+                      const uniqueKey = `reels-${index}`;
+                      const isImported = importedStatus[uniqueKey];
+
+                      return (
+                        <div 
+                          key={uniqueKey} 
+                          className="bg-[#191919]/40 hover:bg-[#1E1E24]/30 border border-[#26262B] hover:border-violet-900/20 rounded-xl p-3.5 space-y-3 relative group transition-all"
+                        >
+                          <p className="text-xs font-semibold text-gray-250 leading-normal font-sans">
+                            {reelsStr}
+                          </p>
+
+                          <div className="flex items-center justify-end text-[10px] font-mono border-t border-[#222] pt-2 text-gray-500 gap-2">
+                            {/* Copy */}
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(reelsStr);
+                                setCopiedId(uniqueKey);
+                                  setTimeout(() => setCopiedId(null), 1500);
+                              }}
+                              className="p-1 px-1.5 hover:bg-[#25252D] rounded text-[#A0A0B0] hover:text-white transition-all cursor-pointer flex items-center gap-1 border border-transparent hover:border-[#2C2C35] font-sans text-[9px]"
+                            >
+                              {copiedId === uniqueKey ? <Check className="w-3 h-3 text-emerald-450" /> : <Copy className="w-3 h-3" />}
+                              {copiedId === uniqueKey ? 'Pronto' : 'Copiar'}
+                            </button>
+
+                            {/* Import */}
+                            <button
+                              disabled={isImported}
+                              onClick={() => handleImportAISuggestion(reelsStr, 'reels', uniqueKey)}
+                              className={`p-1 px-1.5 rounded transition-all flex items-center gap-1 font-sans text-[9px] cursor-pointer ${
+                                isImported 
+                                  ? 'text-gray-650 opacity-40 cursor-default' 
+                                  : 'text-violet-400 hover:text-violet-300 hover:bg-[#25252D] border border-transparent hover:border-[#2C2C35]'
+                              }`}
+                            >
+                              {isImported ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                              {isImported ? 'Importada' : 'Salvar'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          )}
         </div>
       )}
 
