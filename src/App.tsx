@@ -24,11 +24,14 @@ import ReunioesView from './components/ReunioesView';
 import RelatoriosView from './components/RelatoriosView';
 import ConfiguracoesView from './components/ConfiguracoesView';
 import NotificationCenter from './components/NotificationCenter';
+import MetricasView from './components/MetricasView';
 
 // Icons import from lucide-react
 import { 
   Calendar, 
   BarChart, 
+  LineChart,
+  TrendingUp,
   Building2, 
   CheckCircle, 
   CalendarDays, 
@@ -71,7 +74,7 @@ export default function App() {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
       const validTabs = [
-        'hoje', 'sugestoes', 'dashboard', 'unidades', 'checklist_diario', 
+        'hoje', 'sugestoes', 'dashboard', 'unidades', 'metricas', 'checklist_diario', 
         'checklist_semanal', 'checklist_quinzenal', 'checklist_mensal', 'pendencias', 'cronograma', 
         'lives', 'reunioes', 'relatorios', 'configuracoes'
       ];
@@ -157,6 +160,16 @@ export default function App() {
   };
 
   const [focusedUnitId, setFocusedUnitId] = useState<string>('');
+
+  const getSocioInitials = (name?: string) => {
+    if (!name) return 'FT';
+    const clean = name.trim().replace(/\s+/g, ' ');
+    const parts = clean.split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return clean.slice(0, 2).toUpperCase();
+  };
   
   // Mobile navigation drawers states
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -180,7 +193,9 @@ export default function App() {
     specialDates: [],
     criteriosStatusVerde: 'Unidade executou Story 1, Insira Nota, postagem principal de feed e sem pendências ativas.',
     criteriosStatusAmarelo: 'Algum story diário ou nota em atraso.',
-    criteriosStatusVermelho: 'Qualquer pendência de gravidade ALTA/CRÍTICA aberta.'
+    criteriosStatusVermelho: 'Qualquer pendência de gravidade ALTA/CRÍTICA aberta.',
+    sociaOperadora: 'Fritz TráfegON',
+    sociaOperadoraCargo: 'Controlador de Tráfego'
   });
   const [changeLogs, setChangeLogs] = useState<SystemChangeLog[]>([]);
   const [suggestions, setSuggestions] = useState<QuickSuggestion[]>([]);
@@ -234,9 +249,16 @@ export default function App() {
     }
 
     if (savedConfig) {
-      setGlobalConfig(JSON.parse(savedConfig));
+      const parsed = JSON.parse(savedConfig) as GlobalConfig;
+      if (!parsed.hasOwnProperty('sociaOperadora')) {
+        parsed.sociaOperadora = 'Fritz TráfegON';
+      }
+      if (!parsed.hasOwnProperty('sociaOperadoraCargo')) {
+        parsed.sociaOperadoraCargo = 'Controlador de Tráfego';
+      }
+      setGlobalConfig(parsed);
     } else {
-      localStorage.setItem('trafegon_global_config', JSON.stringify({
+      const defaultConf = {
         postagemPrincipalDays: [1, 3, 5],
         storiesFrequency: '1 story diário (Story 1)',
         instagramNotesFrequency: '1 nota diária (Insira Nota)',
@@ -248,8 +270,12 @@ export default function App() {
         specialDates: [],
         criteriosStatusVerde: 'Unidade executou Story 1, Insira Nota, postagem principal de feed e sem pendências ativas.',
         criteriosStatusAmarelo: 'Algum story diário ou nota em atraso.',
-        criteriosStatusVermelho: 'Qualquer pendência de gravidade ALTA/CRÍTICA aberta.'
-      }));
+        criteriosStatusVermelho: 'Qualquer pendência de gravidade ALTA/CRÍTICA aberta.',
+        sociaOperadora: 'Fritz TráfegON',
+        sociaOperadoraCargo: 'Controlador de Tráfego'
+      };
+      setGlobalConfig(defaultConf);
+      localStorage.setItem('trafegon_global_config', JSON.stringify(defaultConf));
     }
 
     if (savedLogs) {
@@ -714,6 +740,7 @@ export default function App() {
   const navigationItems = [
     { id: 'hoje', label: 'Hoje', icon: Calendar, color: 'text-blue-400' },
     { id: 'dashboard', label: 'Dashboard', icon: BarChart, color: 'text-violet-400' },
+    { id: 'metricas', label: 'Métricas', icon: LineChart, color: 'text-emerald-400' },
     { id: 'unidades', label: 'Unidades', icon: Building2, color: 'text-indigo-400' },
     { id: 'checklist_diario', label: 'Checklist Diário', icon: CheckCircle, color: 'text-sky-400' },
     { id: 'sugestoes', label: 'Sugestões Rápidas', icon: Sparkles, color: 'text-amber-400' },
@@ -823,12 +850,12 @@ export default function App() {
           <div className="relative">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 absolute -bottom-0.5 -right-0.5 border border-[#141414] animate-pulse"></span>
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-700 to-blue-600 flex items-center justify-center font-bold font-mono text-xs text-white shadow-inner">
-              FT
+              {getSocioInitials(globalConfig.sociaOperadora)}
             </div>
           </div>
           <div className="text-left">
-            <p className="text-xs font-black text-white leading-tight">Fritz TráfegON</p>
-            <p className="text-[9px] text-[#757575] font-mono font-medium">Controlador de Tráfego</p>
+            <p className="text-xs font-black text-white leading-tight">{globalConfig.sociaOperadora || 'Fritz TráfegON'}</p>
+            <p className="text-[9px] text-[#757575] font-mono font-medium">{globalConfig.sociaOperadoraCargo || 'Controlador de Tráfego'}</p>
           </div>
         </div>
       </aside>
@@ -874,6 +901,7 @@ export default function App() {
             toggleTaskStatus={toggleTaskStatus}
             togglePendenciaStatus={togglePendenciaStatus}
             onNavigateToSection={selectSectionAndFocusUnit}
+            sociaName={globalConfig.sociaOperadora}
           />
 
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
@@ -969,11 +997,11 @@ export default function App() {
             {/* Mobile drawer profile info */}
             <div className="p-4 border-t border-[#212121] bg-[#111111] flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-indigo-700 flex items-center justify-center font-bold font-mono text-xs text-white">
-                FT
+                {getSocioInitials(globalConfig.sociaOperadora)}
               </div>
               <div>
-                <p className="text-xs font-black text-white">Fritz TráfegON</p>
-                <p className="text-[9px] text-gray-500 font-mono">Operacional Espaçolaser</p>
+                <p className="text-xs font-black text-white">{globalConfig.sociaOperadora || 'Fritz TráfegON'}</p>
+                <p className="text-[9px] text-gray-500 font-mono">{globalConfig.sociaOperadoraCargo || 'Controlador de Tráfego'}</p>
               </div>
             </div>
           </div>
@@ -1006,6 +1034,7 @@ export default function App() {
               toggleTaskStatus={toggleTaskStatus}
               togglePendenciaStatus={togglePendenciaStatus}
               onNavigateToSection={selectSectionAndFocusUnit}
+              sociaName={globalConfig.sociaOperadora}
             />
           </div>
         </header>
@@ -1057,6 +1086,12 @@ export default function App() {
                 todayDate={todayDateString}
                 onNavigateToSection={selectSectionAndFocusUnit}
                 globalConfig={globalConfig}
+              />
+            )}
+
+            {activeTab === 'metricas' && (
+              <MetricasView 
+                units={units}
               />
             )}
 

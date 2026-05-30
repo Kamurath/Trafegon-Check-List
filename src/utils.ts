@@ -46,7 +46,7 @@ export function calculateCompletionRate(
   );
 
   let completedCount = 0;
-  let simulatedTotal = dailyTasks.length;
+  let relevantTotal = dailyTasks.length;
 
   for (const task of dailyTasks) {
     const exec = unitDayExecs.find(e => e.taskId === task.id);
@@ -54,12 +54,12 @@ export function calculateCompletionRate(
       if (exec.status === 'executado') {
         completedCount++;
       } else if (exec.status === 'nao_se_aplica') {
-        simulatedTotal--; // remove dos relevantes
+        relevantTotal--; // remove dos relevantes
       }
     }
   }
 
-  const finalTotal = simulatedTotal > 0 ? simulatedTotal : 0;
+  const finalTotal = relevantTotal > 0 ? relevantTotal : 0;
   const percentage = finalTotal > 0 ? Math.round((completedCount / finalTotal) * 100) : 100;
 
   return { completed: completedCount, total: finalTotal, percentage };

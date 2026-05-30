@@ -67,7 +67,7 @@ const DEFAULT_REUNIOES: ReunionItem[] = [
     status: 'Agendada',
     pontosAtencao: 'Aprovação de verba extra para campanhas patrocinadas no Instagram Ads avaliando custos médios por clique (CPC).',
     pendenciasCriticas: 'Consolidar planilha de leads gerados vs convertidos por unidade.',
-    encaminhamentos: 'Fritz estruturar proposta de criativos novos. Priscila aprovar orçamento extra do Grupo ONE.',
+    encaminhamentos: 'Sócio(a) Operador(a) estruturar proposta de criativos novos. Liderança aprovar orçamento extra.',
     observacoes: 'Será realizada online via Google Meet com gravação salva para posterior consulta.',
   }
 ];
@@ -355,7 +355,7 @@ export default function ReunioesView({ units, todayDate }: ReunioesViewProps) {
                 required
                 value={formData.encaminhamentos}
                 onChange={e => setFormData({ ...formData, encaminhamentos: e.target.value })}
-                placeholder="Fritz enviar planilha de leads na segunda; Juliana treinar recepcionista até quarta..."
+                placeholder="Sócio(a) Operador(a) enviar planilha de leads na segunda; Gerente treinar recepcionista até quarta..."
                 rows={3}
                 className="w-full bg-[#1A1A1A] border border-[#2D2D2D] rounded-lg p-2.5 text-white focus:outline-none focus:border-indigo-500 font-sans resize-none"
               />

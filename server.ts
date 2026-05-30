@@ -16,6 +16,117 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
+// Google Sheets metrics configuration
+const METRICS_SHEETS: Record<string, string> = {
+  '1': '1XxorSEspVwY-VAa8XeR2YleixguDwGwVaumu3rQS9OI',
+  '2': '1xkhRGEhHMyntv2DcGtZPovX3vAzKglqEnbIRAFPxx10',
+  '3': '1XPFZn437dv9wzMG7jX9kZVpPhsuzlRkWPlhmSC19DYY',
+  '4': '12eWifNFUc5gVLGdPG48OUgWXzgiKnCxckNz2bXT3e_Q',
+  '5': '1bZYM4-lw-7TWMtNcgX1apj5jrSpR1pBPXKAVxciSOWo',
+  '6': '1NOeinp7l0oiXKb5zdjzmJ6C1YwMmwrsAqBrfGgnJ0cU',
+  '7': '12kkXFpvxDbn-iOAEph1BW6kVJCed2C41ht37rPt6ZJM',
+  '8': '19XhgdbWXFZLM3WbNASowzuBhKEhBxXHw2erhZwrHaY0',
+  '9': '1eK26sKMqm_B8jyVXBeMJ9XYp1lK94yDsI8vk4xkv95k',
+  '10': '197SLVpeuz1Bt3W9oLmnto_MyFU5fijUcGo-OjKzhN6c',
+  '11': '1oVNAUdxSa1v-54QfAOLP7lyq0s-NYunU24sItzolrBw',
+  '12': '15A37s0jyQEsLK5KTlRHkOPO1Hu1Bc3I-xQV1nWUiIZM',
+  '13': '12XNNZnOJza65yNGagTXQEIwfwcPwf1gklaIW8pFHDlU'
+};
+
+function parseCSVRow(row: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < row.length; i++) {
+    const char = row[i];
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
+// API: Get Google Sheets metrics for all units
+app.get('/api/metrics', async (req, res) => {
+  try {
+    const promises = Object.entries(METRICS_SHEETS).map(async ([unitId, sheetId]) => {
+      try {
+        const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+        
+        // Timeout control for spreadsheet downloads
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
+        
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP status ${response.status}`);
+        }
+        
+        const text = await response.text();
+        const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+        
+        if (lines.length < 2) {
+          throw new Error('Planilha vazia ou com formato incorreto.');
+        }
+        
+        const rowValues = parseCSVRow(lines[1]);
+        
+        // Clean values stripping quotes and converting decimals formatted with Brazilian commas to Standard Floats
+        const rawSpend = rowValues[0] || '0';
+        const spend = parseFloat(rawSpend.replace(/"/g, '').replace(/\./g, '').replace(',', '.')) || 0;
+        const impressions = parseInt((rowValues[1] || '0').replace(/"/g, ''), 10) || 0;
+        const reach = parseInt((rowValues[2] || '0').replace(/"/g, ''), 10) || 0;
+        const engagement = parseInt((rowValues[3] || '0').replace(/"/g, ''), 10) || 0;
+        const clicks = parseInt((rowValues[4] || '0').replace(/"/g, ''), 10) || 0;
+        const conversations = parseInt((rowValues[5] || '0').replace(/"/g, ''), 10) || 0;
+        
+        return {
+          unitId,
+          success: true,
+          spend,
+          impressions,
+          reach,
+          engagement,
+          clicks,
+          conversations,
+          updatedAt: new Date().toISOString()
+        };
+      } catch (err: any) {
+        console.error(`Erro ao buscar métricas da unidade ${unitId}:`, err.message);
+        return {
+          unitId,
+          success: false,
+          error: err.message || 'Erro de conexão/timeout'
+        };
+      }
+    });
+    
+    const results = await Promise.all(promises);
+    const metricsMap: Record<string, any> = {};
+    results.forEach(res => {
+      metricsMap[res.unitId] = res;
+    });
+    
+    // Set response headers to prevent caching
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    
+    res.json(metricsMap);
+  } catch (error: any) {
+    console.error('Erro ao processar métricas:', error);
+    res.status(500).json({ error: error.message || 'Falha ao buscar ou processar dados de métricas.' });
+  }
+});
+
 // Lazy loader for GoogleGenAI to prevent startup crash if GEMINI_API_KEY is not defined
 let aiClient: GoogleGenAI | null = null;
 function getAIClient(): GoogleGenAI {

@@ -24,6 +24,7 @@ interface NotificationCenterProps {
   toggleTaskStatus: (unitId: string, taskId: string, date: string, status: any) => void;
   togglePendenciaStatus: (id: string) => void;
   onNavigateToSection: (section: string, unitId?: string) => void;
+  sociaName?: string;
 }
 
 export interface AlertNotification {
@@ -48,7 +49,8 @@ export default function NotificationCenter({
   todayDate,
   toggleTaskStatus,
   togglePendenciaStatus,
-  onNavigateToSection
+  onNavigateToSection,
+  sociaName = 'Fritz TráfegON'
 }: NotificationCenterProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [filterType, setFilterType] = useState<'todas' | 'urgente' | 'rotina' | 'pendencia'>('todas');
@@ -336,7 +338,7 @@ export default function NotificationCenter({
               <div className="p-8 text-center space-y-2">
                 <CheckCircle className="w-8 h-8 text-emerald-500 mx-auto" />
                 <p className="font-semibold text-white">Tudo em dia!</p>
-                <p className="text-[10px] text-gray-500">Parabéns Fritz! Sem rotinas de comunicação pendentes ou pendências críticas no painel.</p>
+                <p className="text-[10px] text-gray-500">Parabéns {sociaName.split(' ')[0]}! Sem rotinas de comunicação pendentes ou pendências críticas no painel.</p>
               </div>
             ) : (
               filteredAlerts.map(alert => {

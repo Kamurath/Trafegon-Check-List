@@ -123,6 +123,8 @@ export interface GlobalConfig {
   criteriosStatusVerde: string;
   criteriosStatusAmarelo: string;
   criteriosStatusVermelho: string;
+  sociaOperadora?: string;
+  sociaOperadoraCargo?: string;
 }
 
 export interface SystemChangeLog {
@@ -141,5 +143,18 @@ export interface QuickSuggestion {
   type: 'nota' | 'story' | 'reels';
   category: 'comerciais' | 'laser' | 'pele' | 'proximidade' | 'cta' | 'story' | 'reels';
   isFavorite?: boolean;
+}
+
+export interface UnitMetricData {
+  unitId: string;
+  success: boolean;
+  spend: number;
+  impressions: number;
+  reach: number;
+  engagement: number;
+  clicks: number;
+  conversations: number;
+  updatedAt?: string;
+  error?: string;
 }
 

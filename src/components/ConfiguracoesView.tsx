@@ -730,6 +730,30 @@ export default function ConfiguracoesView({
     vermelho: datesForm.criteriosStatusVermelho || globalConfig.criteriosStatusVermelho || ''
   });
 
+  const [sociaNameInput, setSociaNameInput] = useState(datesForm.sociaOperadora || globalConfig.sociaOperadora || 'Fritz TráfegON');
+  const [sociaRoleInput, setSociaRoleInput] = useState(datesForm.sociaOperadoraCargo || globalConfig.sociaOperadoraCargo || 'Controlador de Tráfego');
+
+  const handleSaveSociaInfo = (e: React.FormEvent) => {
+    e.preventDefault();
+    const updated = {
+      ...datesForm,
+      sociaOperadora: sociaNameInput,
+      sociaOperadoraCargo: sociaRoleInput
+    };
+
+    triggerChangeLogFlow(
+      'Atualizar Sócio(a) Operador(a)',
+      'Edição do nome e cargo do(a) Sócio(a) Operador(a) responsável pelo sistema',
+      JSON.stringify(globalConfig),
+      JSON.stringify(updated),
+      () => {
+        setDatesForm(updated);
+        onUpdateGlobalConfig(updated);
+        showNotice('Informações de Sócio(a) Operador(a) salvas com sucesso!', 'success');
+      }
+    );
+  };
+
   const handleSaveStatusCriteria = (e: React.FormEvent) => {
     e.preventDefault();
     const updated = {
@@ -1965,27 +1989,62 @@ export default function ConfiguracoesView({
             </div>
           </form>
 
-          {/* Quick presets (Requirement 5) */}
+          {/* Editable Sócio(a) Operador(a) & Quick presets (Requirement 3) */}
           <div className="lg:col-span-4 bg-[#141414] p-5 rounded-2xl border border-[#212121] space-y-4">
-            <div className="border-b border-[#212121] pb-3">
-              <h3 className="font-display font-extrabold text-[15px] text-white">Parâmetros Rápidos de Operação</h3>
-              <p className="text-xs text-gray-400 mt-0.5 font-sans">Visualização estática dos padrões vigentes do Grupo ONE.</p>
+            <div className="border-b border-[#212121] pb-3 flex items-center justify-between">
+              <div>
+                <h3 className="font-display font-extrabold text-[15px] text-white">Sócio(a) Operador(a)</h3>
+                <p className="text-[10px] text-gray-400 mt-0.5 font-sans mr-2">Edite as informações do operador do sistema.</p>
+              </div>
+              <User className="w-5 h-5 text-indigo-400 shrink-0" />
             </div>
 
-            <div className="space-y-3">
-              <div className="p-3 bg-[#181818] rounded-xl border border-[#222] space-y-1.5">
-                <span className="font-bold text-gray-200">Reunião Quinzenal</span>
-                <p className="text-gray-400 leading-snug">Metodologia aplicada de cobrança de Stories e notas baseados nas métricas operacionais.</p>
+            <form onSubmit={handleSaveSociaInfo} className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Nome Completo</label>
+                <input
+                  type="text"
+                  required
+                  value={sociaNameInput}
+                  onChange={(e) => setSociaNameInput(e.target.value)}
+                  className="w-full bg-[#111] text-white border border-[#2D2D2D] rounded-xl p-2.5 focus:outline-none focus:border-indigo-500 text-xs"
+                  placeholder="Nome do Sócio(a) Operador(a)"
+                />
               </div>
 
-              <div className="p-3 bg-[#181818] rounded-xl border border-[#222] space-y-1.5">
-                <span className="font-bold text-gray-200">Checklist Automático</span>
-                <p className="text-gray-400 leading-snug">Incentiva gerentes a bater metas de Story 1 (Até às 08h00) e Insira Nota (Até às 08h00) todos os dias (exceto domingos).</p>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Cargo / Função</label>
+                <input
+                  type="text"
+                  required
+                  value={sociaRoleInput}
+                  onChange={(e) => setSociaRoleInput(e.target.value)}
+                  className="w-full bg-[#111] text-white border border-[#2D2D2D] rounded-xl p-2.5 focus:outline-none focus:border-indigo-500 text-xs"
+                  placeholder="Cargo ou Função"
+                />
               </div>
 
-              <div className="p-3 bg-[#181818] rounded-xl border border-[#222] space-y-1.5">
-                <span className="font-bold text-gray-200">Cronograma de Feed</span>
-                <p className="text-gray-400 leading-snug">Postagens principais automatizadas via agendador programado centralmente.</p>
+              <button
+                type="submit"
+                className="w-full py-2 bg-indigo-650 hover:bg-indigo-750 text-white rounded-xl font-bold text-xs transition-all shadow-md cursor-pointer text-center"
+              >
+                Salvar Sócio(a) Operador(a)
+              </button>
+            </form>
+
+            <div className="border-t border-[#212121] pt-3 mt-4 space-y-3">
+              <h4 className="font-display font-bold text-[11px] text-gray-300 uppercase tracking-wider">Metodologia Vigente</h4>
+              
+              <div className="space-y-2">
+                <div className="p-3 bg-[#181818] rounded-xl border border-[#222] space-y-1.5">
+                  <span className="font-bold text-gray-205 text-gray-200 block text-[10px]">Reunião Quinzenal</span>
+                  <p className="text-gray-405 leading-snug text-gray-400 text-[10px]">Metodologia de cobrança de rotinas e notas com base nas métricas.</p>
+                </div>
+
+                <div className="p-3 bg-[#181818] rounded-xl border border-[#222] space-y-1.5">
+                  <span className="font-bold text-gray-205 text-gray-200 block text-[10px]">Checklist Automático</span>
+                  <p className="text-gray-455 leading-snug text-gray-400 text-[10px]">Incentiva metas Stories (Até 08h00) e Insira Nota (Até 08h00), exceto domingos.</p>
+                </div>
               </div>
             </div>
           </div>
