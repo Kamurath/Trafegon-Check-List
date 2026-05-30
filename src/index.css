@@ -1,0 +1,512 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-brand-primary: #1e3a8a; /* Deep blue representing corporate security & trust */
+  --color-brand-secondary: #0ea5e9; /* Sky blue representing active flow */
+}
+
+/* ---------------------------------------------------- */
+/* THEME SYSTEM STYLING DECLARATIONS (LOCKED TO NOITE) */
+/* ---------------------------------------------------- */
+:root {
+  --color-bg-base: #090d16; /* Deep elegant space core */
+  --color-bg-card: #121826; /* Sleek sapphire dark card state */
+  --color-text-title: #f8fafc; /* Pristine white */
+  --color-text-body: #cbd5e1; /* Smooth ash slate text */
+  --color-text-muted: #64748b; /* Soft sidebar gray */
+  --color-border-subtle: rgba(255, 255, 255, 0.06); /* High-end ultra-thin glass boundary */
+  --color-border-heavy: rgba(255, 255, 255, 0.12); /* Glossy tactile boundary */
+  --color-table-header-bg: #0c111e; /* Deep executive header background */
+  --color-hover-row: #182033; /* Glow response on hover */
+  
+  --color-sidebar-bg: #060910; /* Solid midnight black-blue panel */
+  --color-sidebar-border: rgba(255, 255, 255, 0.04);
+  --color-sidebar-text: #64748b;
+  --color-sidebar-text-hover: #ffffff;
+  --color-sidebar-active-bg: #2563eb;
+  --color-sidebar-profile-bg: #03050a;
+
+  --color-status-green-bg: rgba(16, 185, 129, 0.10);
+  --color-status-green-text: #34d399; /* Vivid emerald */
+  --color-status-green-border: rgba(16, 185, 129, 0.2);
+  
+  --color-status-red-bg: rgba(244, 63, 94, 0.10);
+  --color-status-red-text: #fb7185; /* Vivid ruby red */
+  --color-status-red-border: rgba(244, 63, 94, 0.2);
+  
+  --color-status-yellow-bg: rgba(245, 158, 11, 0.10);
+  --color-status-yellow-text: #fbbf24; /* Sunset orange-yellow */
+  --color-status-yellow-border: rgba(245, 158, 11, 0.2);
+  
+  --color-status-gray-bg: rgba(100, 116, 139, 0.10);
+  --color-status-gray-text: #94a3b8; /* Professional slate gray */
+  --color-status-gray-border: rgba(100, 116, 139, 0.2);
+}
+
+/* Base Body Layout & Premium Canvas */
+body {
+  background-color: var(--color-bg-base) !important;
+  color: var(--color-text-body) !important;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif !important;
+}
+
+/* Override container & default wrapper backgrounds to remain synchronized under theme */
+.min-h-screen.bg-\[\#0A0A0A\],
+.bg-\[\#0a0a0a\],
+.bg-\[\#0A0A0A\],
+.bg-black\/85,
+.bg-black {
+  background-color: var(--color-bg-base) !important;
+  transition: background-color 0.25s ease;
+}
+
+/* General Display Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Manrope", "Inter", sans-serif !important;
+  color: var(--color-text-title) !important;
+  letter-spacing: -0.015em !important;
+  transition: color 0.15s ease;
+}
+
+/* Custom Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-base);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-heavy);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* ---------------------------------------------------- */
+/* PREMIUM DESIGN SYSTEM OVERRIDES                     */
+/* ---------------------------------------------------- */
+
+/* 1. SIDEBAR - Premium Graphite Professional Layout */
+aside.bg-\[\#141414\] {
+  background-color: var(--color-sidebar-bg) !important; 
+  border-right: 1px solid var(--color-sidebar-border) !important;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.04) !important;
+  transition: background-color 0.25s ease;
+}
+
+aside .border-b,
+aside .border-t,
+aside .border-\[\#212121\],
+aside .border-\[\#262626\] {
+  border-color: var(--color-sidebar-border) !important;
+}
+
+aside button {
+  color: var(--color-sidebar-text) !important;
+  font-weight: 500 !important;
+  font-size: 0.8125rem !important;
+}
+
+aside button:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: var(--color-sidebar-text-hover) !important;
+}
+
+/* Keep current active nav high-contrast and vivid blue */
+aside button[class*="bg-[#1C1C1C]"] {
+  background-color: var(--color-sidebar-active-bg) !important; 
+  border-color: #3b82f6 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15) !important;
+}
+
+aside button[class*="bg-[#1C1C1C]"] span,
+aside button[class*="bg-[#1C1C1C]"] svg {
+  color: #ffffff !important;
+}
+
+aside .text-white, 
+aside p.text-white, 
+aside strong {
+  color: #ffffff !important;
+}
+
+aside .bg-\[\#111111\] {
+  background-color: var(--color-sidebar-profile-bg) !important; 
+}
+
+/* 2. MOBILE TOP STICKY HEADER & DRAWER SYSTEM */
+header.bg-\[\#141414\],
+header.bg-black {
+  background-color: var(--color-sidebar-bg) !important;
+  border-bottom: 1px solid var(--color-sidebar-border) !important;
+}
+
+header .text-white {
+  color: #ffffff !important;
+}
+
+/* Mobile sliding drawer overlay sheet */
+div.fixed.inset-0.z-50 .bg-\[\#141414\] {
+  background-color: var(--color-sidebar-bg) !important;
+  border-right: 1px solid var(--color-sidebar-border) !important;
+  box-shadow: 10px 0 40px rgba(0, 0, 0, 0.15) !important;
+}
+
+div.fixed.inset-0.z-50 .bg-\[\#141414\] .p-4 {
+  background-color: var(--color-sidebar-bg) !important;
+}
+
+div.fixed.inset-0.z-50 .bg-\[\#141414\] button {
+  color: var(--color-sidebar-text) !important;
+}
+
+div.fixed.inset-0.z-50 .bg-\[\#141414\] button[class*="bg-[#1C1C1C]"] {
+  background-color: var(--color-sidebar-active-bg) !important;
+  color: #ffffff !important;
+}
+
+div.fixed.inset-0.z-50 .bg-\[\#141414\] button[class*="bg-[#1C1C1C]"] span,
+div.fixed.inset-0.z-50 .bg-\[\#141414\] button[class*="bg-[#1C1C1C]"] svg {
+  color: #ffffff !important;
+}
+
+div.fixed.inset-0.z-50 .bg-\[\#141414\] .text-white,
+div.fixed.inset-0.z-50 .bg-\[\#141414\] p {
+  color: #ffffff !important;
+}
+
+div.fixed.inset-0.z-50 .bg-\[\#111111\] {
+  background-color: var(--color-sidebar-profile-bg) !important;
+}
+
+/* 3. LIGHT MODE PREMIUM PORTAL CONTAINER & CARD SCHEMING */
+main, .flex-1.flex.flex-col.min-h-screen {
+  background-color: var(--color-bg-base) !important;
+  transition: background-color 0.25s ease;
+}
+
+/* Desktop Header panel elements */
+main header,
+.flex-1 header {
+  background-color: var(--color-bg-card) !important;
+  border-bottom: 2px solid var(--color-border-subtle) !important;
+  transition: background-color 0.25s ease, border-color 0.15s ease;
+}
+
+main footer,
+footer.bg-\[\#141414\] {
+  background-color: var(--color-bg-card) !important;
+  border-top: 1px solid var(--color-border-subtle) !important;
+  box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.01) !important;
+}
+
+/* Cards with rounded corners, subtle shadows and thin borders */
+main .bg-\[\#141414\],
+main .bg-\[\#181818\],
+main .bg-\[\#1C1C1C\],
+main .bg-\[\#1A1A1A\],
+main .bg-\[\#1D1D1D\],
+main .bg-\[\#1C1D1F\],
+main .bg-\[\#1C1C1D\],
+main .bg-neutral-900,
+main .bg-slate-900,
+main div[class*="bg-[#141414]"],
+main div[class*="bg-[#1C1C1D]"],
+main div[class*="bg-[#1C1C1C]"] {
+  background-color: var(--color-bg-card) !important;
+  border: 1px solid var(--color-border-subtle) !important;
+  color: var(--color-text-body) !important;
+  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.5), 0 4px 12px -2px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.05) !important;
+  border-radius: 1rem !important; /* Premium rounded edges support */
+  transition: background-color 0.25s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.2s ease;
+}
+
+/* Elevate on hover for a glorious tactile feedback */
+main div[class*="bg-[#141414]"]:hover,
+main div[class*="bg-[#1C1C1D]"]:hover,
+main div[class*="bg-[#1C1C1C]"]:hover {
+  border-color: var(--color-border-heavy) !important;
+  box-shadow: 0 16px 36px -2px rgba(0, 0, 0, 0.6), 0 6px 16px -2px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Specific button in general hover behaviors */
+main .bg-\[\#1C1C1D\]:hover {
+  border-color: var(--color-border-heavy) !important;
+}
+
+/* Border overrides to subtle off-white/gray */
+main .border-\[\#212121\],
+main .border-\[\#232323\],
+main .border-\[\#262626\],
+main .border-\[\#2D2D2E\],
+main .border-\[\#1F1F1F\],
+main .border-\[\#1c1c1d\],
+main .border-\[\#2c2c2c\],
+main .border-\[\#2C2C2C\],
+main .border-neutral-800,
+main .border-neutral-700,
+main .border-slate-800,
+main .border-zinc-800,
+main .border-zinc-700 {
+  border-color: var(--color-border-subtle) !important;
+  transition: border-color 0.15s ease;
+}
+
+/* Inputs, Select fields & Textareas styling */
+main input[type="text"],
+main input[type="date"],
+main select,
+main textarea,
+main input[type="datetime-local"] {
+  background-color: var(--color-bg-card) !important;
+  border: 1px solid var(--color-border-heavy) !important;
+  color: var(--color-text-body) !important;
+  border-radius: 0.5rem !important;
+  font-family: inherit !important;
+  font-size: 0.8125rem !important;
+  padding: 0.5rem 0.75rem !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+  transition: background-color 0.25s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+main input:focus,
+main select:focus,
+main textarea:focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+  outline: none !important;
+}
+
+/* Search bar styling */
+main .bg-\[\#1A1A1A\],
+main .bg-\[\#1A1A1C\] {
+  background-color: var(--color-bg-card) !important;
+  border-color: var(--color-border-subtle) !important;
+}
+
+/* Modals & Dialog overlays */
+div.fixed.inset-0.z-50 .bg-\[\#141414\]:not(.border-r) {
+  background-color: var(--color-bg-card) !important;
+  color: var(--color-text-body) !important;
+  border: 1px solid var(--color-border-heavy) !important;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.12) !important;
+  border-radius: 1rem !important;
+  transition: background-color 0.25s ease, color 0.15s ease;
+}
+
+div.fixed.inset-0.z-50 .bg-\[\#1A1A1A\] {
+  background-color: var(--color-bg-base) !important;
+}
+
+/* Standard Button text hierarchy consistency */
+main .bg-blue-600 *,
+main .bg-indigo-600 *,
+main .bg-violet-600 *,
+main .bg-rose-500 *,
+main .bg-rose-600 *,
+main .bg-emerald-600 *,
+main button.bg-blue-600,
+main button.bg-indigo-650,
+main button.bg-violet-600,
+main button.bg-rose-500,
+main button.bg-rose-600,
+main button.bg-emerald-600 {
+  color: #ffffff !important;
+}
+
+/* Text colors standardization for impeccable spacing & hierarchy */
+main .text-white,
+.text-slate-100,
+.text-\[\#E0E0E0\] {
+  color: var(--color-text-title) !important;
+  transition: color 0.15s ease;
+}
+
+main .text-slate-200 {
+  color: var(--color-text-body) !important;
+}
+
+main .text-slate-300 {
+  color: var(--color-text-body) !important;
+}
+
+main .text-slate-400,
+main .text-gray-400,
+main .text-gray-450,
+main .text-gray-500,
+main .text-\[\#808080\] {
+  color: var(--color-text-muted) !important;
+  transition: color 0.15s ease;
+}
+
+/* Dropdown alert menus & Notification dropdown formatting */
+header div[class*="absolute right-0 mt-2"],
+main div[class*="absolute right-0 mt-2"],
+.dropdown-menu {
+  background-color: var(--color-bg-card) !important;
+  border: 1px solid var(--color-border-subtle) !important;
+  color: var(--color-text-body) !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05) !important;
+  border-radius: 0.75rem !important;
+  transition: background-color 0.25s ease;
+}
+
+header div[class*="absolute right-0 mt-2"] *,
+main div[class*="absolute right-0 mt-2"] * {
+  color: var(--color-text-body) !important;
+}
+
+header div[class*="absolute right-0 mt-2"] span,
+main div[class*="absolute right-0 mt-2"] span {
+  color: var(--color-text-muted) !important;
+}
+
+/* 4. EXECUTIVE TABLE FORMATTING (No more cluttered headers/fusions) */
+main table {
+  width: 100% !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+main th {
+  background-color: var(--color-table-header-bg) !important; /* Soft header blue-gray tint */
+  color: var(--color-text-muted) !important; /* Charcoal slate-600 / muted */
+  font-weight: 600 !important;
+  font-size: 0.75rem !important;
+  letter-spacing: 0.05em !important;
+  border-bottom: 2px solid var(--color-border-subtle) !important;
+  padding: 0.75rem 1rem !important;
+  transition: background-color 0.25s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+main td {
+  border-bottom: 1px solid var(--color-border-subtle) !important;
+  color: var(--color-text-body) !important;
+  font-size: 0.8125rem !important;
+  padding: 0.875rem 1rem !important;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+main tr:last-child td {
+  border-bottom: none !important;
+}
+
+main tr:hover td {
+  background-color: var(--color-hover-row) !important;
+  transition: background-color 0.15s ease;
+}
+
+/* Special dates timeline and configs headers */
+main .border-b-2.border-blue-500,
+main .border-b-2.border-indigo-500 {
+  border-color: #2563eb !important;
+  color: #2563eb !important;
+}
+
+/* 5. BRANDING STATE COLOR PALETTES (Elegant and SOBER) */
+
+/* Green Status - Concluído / Em dia */
+.bg-emerald-955\/25,
+.bg-emerald-950\/20,
+.bg-emerald-950\/10,
+.bg-emerald-900\/20,
+.bg-emerald-900\/10,
+.text-emerald-400 {
+  background-color: var(--color-status-green-bg) !important;
+  color: var(--color-status-green-text) !important;
+  border: 1px solid var(--color-status-green-border) !important;
+  transition: background-color 0.25s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.text-emerald-450 {
+  color: var(--color-status-green-text) !important;
+}
+
+/* Red Status - Crítico / Atrasado */
+.bg-rose-955\/25,
+.bg-rose-955\/15,
+.bg-rose-950\/25,
+.bg-rose-955\/15,
+.bg-rose-950\/15,
+.bg-rose-900\/25,
+.bg-rose-950\/20,
+.bg-\[\#291717\]\/40,
+.text-rose-400 {
+  background-color: var(--color-status-red-bg) !important;
+  color: var(--color-status-red-text) !important;
+  border: 1px solid var(--color-status-red-border) !important;
+  transition: background-color 0.25s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.text-rose-450, .text-rose-500 {
+  color: var(--color-status-red-text) !important;
+}
+
+/* Yellow Status - Atenção / Pendente */
+.bg-amber-955\/15,
+.bg-amber-950\/15,
+.bg-amber-900\/15,
+.bg-amber-900\/20,
+.bg-amber-955\/20,
+.text-amber-400 {
+  background-color: var(--color-status-yellow-bg) !important;
+  color: var(--color-status-yellow-text) !important;
+  border: 1px solid var(--color-status-yellow-border) !important;
+  transition: background-color 0.25s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+/* Gray Status - Não se aplica / Inativo */
+.bg-zinc-900,
+.bg-neutral-900,
+.bg-neutral-850,
+.bg-neutral-800,
+.text-zinc-400 {
+  background-color: var(--color-status-gray-bg) !important;
+  color: var(--color-status-gray-text) !important;
+  border: 1px solid var(--color-status-gray-border) !important;
+  transition: background-color 0.25s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+/* Checkboxes standards */
+input[type="checkbox"] {
+  border-radius: 0.375rem !important;
+  border-color: var(--color-border-heavy) !important;
+  color: #2563eb !important;
+}
+
+input[type="checkbox"]:checked {
+  background-color: #2563eb !important;
+  border-color: #2563eb !important;
+}
+
+/* 6. OPERATIONAL EXECUTIVES ANIMATIONS */
+@keyframes check-bounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.animate-check {
+  animation: check-bounce 0.15s ease-out;
+}
+
+/* Subtle Pulsing for Alerts under professional boundaries */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+.animate-pulse-slow {
+  animation: pulse-subtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
