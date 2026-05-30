@@ -95,10 +95,13 @@ export default function DashboardView({
       const postagemDays = globalConfig?.postagemPrincipalDays || [1, 3, 5];
       const isPostagemDay = postagemDays.includes(dayOfWeek);
 
-      const checklistItems = [
-        { id: 'story-1', title: 'Story 1 publicado/programado', suggestedTime: '09:00', isStory: true },
-        { id: 'nota-instagram', title: 'Insira Nota', suggestedTime: '11:00', isNota: true }
-      ];
+      const checklistItems: any[] = [];
+      if (dayOfWeek !== 0) {
+        checklistItems.push(
+          { id: 'story-1', title: 'Story 1 publicado/programado', suggestedTime: '08:00', isStory: true },
+          { id: 'nota-instagram', title: 'Insira Nota', suggestedTime: '08:00', isNota: true }
+        );
+      }
 
       if (isPostagemDay) {
         checklistItems.push({
@@ -233,9 +236,9 @@ export default function DashboardView({
       const isPostagemDay = unitTasks.some(t => t.id === 'postagem-principal');
 
       // Individual Task Status Queries
-      const story1Status = getTaskStatus(unit.id, 'story-1', selectedDate, '09:00');
+      const story1Status = getTaskStatus(unit.id, 'story-1', selectedDate, '08:00');
 
-      const notaStatus = getTaskStatus(unit.id, 'nota-instagram', selectedDate, '11:00');
+      const notaStatus = getTaskStatus(unit.id, 'nota-instagram', selectedDate, '08:00');
       const postagemStatus = isPostagemDay ? getTaskStatus(unit.id, 'postagem-principal', selectedDate, '12:00') : 'nao_se_aplica';
 
       const unitPendencias = pendencias.filter(p => p.unitId === unit.id && (p.status === 'pendente' || p.status === 'em_andamento' || p.status === 'aberta'));

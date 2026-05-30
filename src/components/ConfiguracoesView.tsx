@@ -1980,7 +1980,7 @@ export default function ConfiguracoesView({
 
               <div className="p-3 bg-[#181818] rounded-xl border border-[#222] space-y-1.5">
                 <span className="font-bold text-gray-200">Checklist Automático</span>
-                <p className="text-gray-400 leading-snug">Incentiva gerentes a bater metas de Story 1 (Até às 09h00) e Insira Nota (Até às 11h00).</p>
+                <p className="text-gray-400 leading-snug">Incentiva gerentes a bater metas de Story 1 (Até às 08h00) e Insira Nota (Até às 08h00) todos os dias (exceto domingos).</p>
               </div>
 
               <div className="p-3 bg-[#181818] rounded-xl border border-[#222] space-y-1.5">

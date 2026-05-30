@@ -151,6 +151,9 @@ export default function HojeView({
         if (task.id === 'postagem-principal') {
           return isPostagemDay;
         }
+        if ((task.id === 'story-1' || task.id === 'nota-instagram') && dayOfWeek === 0) {
+          return false;
+        }
         return true;
       });
 
@@ -158,8 +161,8 @@ export default function HojeView({
         id: task.id,
         title: task.title,
         suggestedTime: task.suggestedTime || (
-          task.id === 'story-1' ? '09:00' :
-          task.id === 'nota-instagram' ? '11:00' : '12:00'
+          task.id === 'story-1' ? '08:00' :
+          task.id === 'nota-instagram' ? '08:00' : '12:00'
         ),
         description: task.description
       }));
@@ -767,8 +770,8 @@ export default function HojeView({
                   <tr>
                     <th className="py-3 px-4 text-left font-extrabold">Unidade</th>
                     <th className="py-3 px-4 text-center font-extrabold">% Ok</th>
-                    <th className="py-3 px-3 text-center">Story 1<span className="block text-[8px] text-gray-500 font-mono">09h</span></th>
-                    <th className="py-3 px-3 text-center">Insira Nota<span className="block text-[8px] text-gray-500 font-mono">11h</span></th>
+                    <th className="py-3 px-3 text-center">Story 1<span className="block text-[8px] text-gray-500 font-mono">08h</span></th>
+                    <th className="py-3 px-3 text-center">Insira Nota<span className="block text-[8px] text-gray-500 font-mono">08h</span></th>
                     {isPostagemFieldDay && (
                       <th className="py-3 px-3 text-center text-indigo-400">Feed Principal<span className="block text-[8px] text-indigo-500 font-mono">12h</span></th>
                     )}
@@ -782,8 +785,8 @@ export default function HojeView({
                     const unitPendencias = pendencias.filter(p => p.unitId === unit.id && !['resolvido', 'resolvida', 'cancelado'].includes(p.status));
 
                     // Dynamic column status retrieval
-                    const s1St = getTaskStatus(unit.id, 'story-1', selectedDate, '09:00');
-                    const instSt = getTaskStatus(unit.id, 'nota-instagram', selectedDate, '11:00');
+                    const s1St = getTaskStatus(unit.id, 'story-1', selectedDate, '08:00');
+                    const instSt = getTaskStatus(unit.id, 'nota-instagram', selectedDate, '08:00');
                     const feedSt = isPostagemFieldDay ? getTaskStatus(unit.id, 'postagem-principal', selectedDate, '12:00') : 'nao_se_aplica';
 
                     return (
@@ -1117,7 +1120,7 @@ export default function HojeView({
                 <span className="text-gray-500 block text-2xl">🌱</span>
                 <strong className="text-white block font-extrabold text-[11px]">Estratégia Orgânica de Stories de Hoje</strong>
                 <p className="text-[10px] text-gray-500 leading-normal">
-                  Sem publicação de Feed obrigatória hoje! Foque no engajamento por enquetes, bastidores da recepção, perguntas interativas no direct e postagem na Nota do Instagram às 11:00h.
+                  Sem publicação de Feed obrigatória hoje! Foque no engajamento por enquetes, bastidores da recepção, perguntas interativas no direct e postagem na Nota do Instagram às 08:00h.
                 </p>
               </div>
             )}

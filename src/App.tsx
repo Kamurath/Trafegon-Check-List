@@ -47,7 +47,12 @@ import {
   Sparkles,
   Lightbulb,
   Sun,
-  Moon
+  Moon,
+  Monitor,
+  Maximize2,
+  Minimize2,
+  Laptop,
+  Smartphone
 } from 'lucide-react';
 
 export default function App() {
@@ -60,6 +65,97 @@ export default function App() {
 
   // Core navigation state (defaults to 'hoje')
   const [activeTab, setActiveTab] = useState<string>('hoje');
+
+  // Sync tab state with URL hash for fluid browser back/forward and mobile swipe navigation
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      const validTabs = [
+        'hoje', 'sugestoes', 'dashboard', 'unidades', 'checklist_diario', 
+        'checklist_semanal', 'checklist_quinzenal', 'checklist_mensal', 'pendencias', 'cronograma', 
+        'lives', 'reunioes', 'relatorios', 'configuracoes'
+      ];
+      if (hash && validTabs.includes(hash)) {
+        setActiveTab(hash);
+      } else if (!hash) {
+        // Fallback default
+        setActiveTab('hoje');
+        window.history.replaceState(null, '', '#hoje');
+      }
+    };
+
+    // Run once on load/mount
+    handleHashChange();
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
+
+  // Update hash when activeTab changes programmatically
+  useEffect(() => {
+    if (window.location.hash !== `#${activeTab}`) {
+      window.location.hash = activeTab;
+    }
+  }, [activeTab]);
+
+  // PWA and Fullscreen handles
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isAppInstalled, setIsAppInstalled] = useState<boolean>(false);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleBeforePrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    const handleInstalled = () => {
+      setIsAppInstalled(true);
+      setDeferredPrompt(null);
+    };
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforePrompt);
+    window.addEventListener('appinstalled', handleInstalled);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    // Initial check for standalone mode
+    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true) {
+      setIsAppInstalled(true);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforePrompt);
+      window.removeEventListener('appinstalled', handleInstalled);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  const handleInstallAppClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    } else {
+      alert("Para instalar este Aplicativo no seu Computador ou Celular:\n\n1. No Google Chrome, clique nos três pontinhos no canto superior direito.\n2. Escolha \"Salvar e Compartilhar\" > \"Instalar página como app...\" ou \"Instalar TráfegON Check...\".\n\nNo celular, clique nos três pontos (Android) ou no botão Compartilhar (iOS) e selecione \"Adicionar à tela de início\".\n\nIsso fixará o ícone original da Espaçolaser na sua área de trabalho e abrirá o controle em tela cheia!");
+    }
+  };
+
+  const handleToggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.error(`Erro ao ativar tela cheia: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
+
   const [focusedUnitId, setFocusedUnitId] = useState<string>('');
   
   // Mobile navigation drawers states
@@ -80,7 +176,7 @@ export default function App() {
     livesFrequency: '1 vez por semana',
     reuniaoQuinzenal: '2026-05-30T10:00',
     cronogramaMensalPrazo: '2026-06-05',
-    suggestedPublishTimes: ['09:00', '11:00', '12:00'],
+    suggestedPublishTimes: ['08:00', '12:00', '18:00'],
     specialDates: [],
     criteriosStatusVerde: 'Unidade executou Story 1, Insira Nota, postagem principal de feed e sem pendências ativas.',
     criteriosStatusAmarelo: 'Algum story diário ou nota em atraso.',
@@ -148,7 +244,7 @@ export default function App() {
         livesFrequency: '1 vez por semana',
         reuniaoQuinzenal: '2026-05-30T10:00',
         cronogramaMensalPrazo: '2026-06-05',
-        suggestedPublishTimes: ['09:00', '11:00', '12:00'],
+        suggestedPublishTimes: ['08:00', '12:00', '18:00'],
         specialDates: [],
         criteriosStatusVerde: 'Unidade executou Story 1, Insira Nota, postagem principal de feed e sem pendências ativas.',
         criteriosStatusAmarelo: 'Algum story diário ou nota em atraso.',
@@ -229,6 +325,9 @@ export default function App() {
       if (task.id === 'postagem-principal') {
         return isPostagemDay;
       }
+      if ((task.id === 'story-1' || task.id === 'nota-instagram') && dayOfWeek === 0) {
+        return false;
+      }
       return true;
     });
 
@@ -279,7 +378,15 @@ export default function App() {
         const dayOfWeek = parts.length === 3 ? new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])).getDay() : 1;
         const postagemDays = globalConfig?.postagemPrincipalDays || [1, 3, 5];
         const isPostagemDay = postagemDays.includes(dayOfWeek);
-        const activeDailyTasks = dailyTasks.filter(task => task.id !== 'postagem-principal' || isPostagemDay);
+        const activeDailyTasks = dailyTasks.filter(task => {
+          if (task.id === 'postagem-principal') {
+            return isPostagemDay;
+          }
+          if ((task.id === 'story-1' || task.id === 'nota-instagram') && dayOfWeek === 0) {
+            return false;
+          }
+          return true;
+        });
 
         activeDailyTasks.forEach(task => {
           total++;
@@ -312,7 +419,15 @@ export default function App() {
     const postagemDays = globalConfig?.postagemPrincipalDays || [1, 3, 5];
     const isPostagemDay = postagemDays.includes(dayOfWeek);
     const dailyTasks = tasks.filter(t => t.frequency === 'diario');
-    const activeDailyTasks = dailyTasks.filter(task => task.id !== 'postagem-principal' || isPostagemDay);
+    const activeDailyTasks = dailyTasks.filter(task => {
+      if (task.id === 'postagem-principal') {
+        return isPostagemDay;
+      }
+      if ((task.id === 'story-1' || task.id === 'nota-instagram') && dayOfWeek === 0) {
+        return false;
+      }
+      return true;
+    });
 
     const activeUnits = units.filter(u => u.active);
     const newExecs: TaskExecution[] = [];
@@ -670,6 +785,39 @@ export default function App() {
           })}
         </div>
 
+        {/* PWA Direct Installation Helper */}
+        {!isAppInstalled && (
+          <div className="mx-3 my-2 p-3 bg-indigo-950/20 border border-indigo-900/35 rounded-xl text-left space-y-1.5 shrink-0">
+            <div className="flex items-center gap-1.5 text-indigo-400">
+              <Laptop className="w-3.5 h-3.5" />
+              <span className="text-[10px] font-black uppercase tracking-wider">TráfegON no Computador</span>
+            </div>
+            <p className="text-[9.5px] text-gray-400 leading-normal">
+              Instale o app e acesse direto em tela cheia com ícone oficial.
+            </p>
+            <button
+              onClick={handleInstallAppClick}
+              className="w-full py-1.5 bg-indigo-650 hover:bg-indigo-600 text-white rounded-lg text-[10px] font-bold font-mono transition-colors shadow-sm cursor-pointer text-center"
+            >
+              Instalar Aplicativo
+            </button>
+          </div>
+        )}
+
+        {/* Desktop Screen Sizing Utilities */}
+        <div className="px-3 pb-2 text-left space-y-1 shrink-0">
+          <button
+            onClick={handleToggleFullscreen}
+            className="w-full flex items-center justify-between px-3 py-1.5 bg-[#181818] hover:bg-[#1f1f1f] border border-[#212121] hover:border-[#333333] text-[10px] font-bold text-gray-400 hover:text-white rounded-lg transition-all cursor-pointer"
+          >
+            <span className="flex items-center gap-2">
+              <Maximize2 className="w-3 h-3 text-indigo-400" />
+              {isFullscreen ? 'Sair de Tela Cheia' : 'Modo Tela Cheia (Browser)'}
+            </span>
+            <span className="text-[8px] font-mono font-black text-gray-650">F11 / SCR</span>
+          </button>
+        </div>
+
         {/* Desktop sidebar bottom footer profile */}
         <div className="p-4 border-t border-[#212121] bg-[#111111] flex items-center gap-3 shrink-0">
           <div className="relative">
@@ -707,6 +855,15 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Mobile Fullscreen toggle */}
+          <button
+            onClick={handleToggleFullscreen}
+            className="p-1 text-gray-400 hover:text-white transition-colors cursor-pointer"
+            title={isFullscreen ? 'Sair de Tela Cheia' : 'Modo Tela Cheia'}
+          >
+            {isFullscreen ? <Minimize2 className="w-5 h-5 text-indigo-450" /> : <Maximize2 className="w-5 h-5" />}
+          </button>
+
           <NotificationCenter 
             units={units}
             tasks={tasks}
@@ -789,6 +946,25 @@ export default function App() {
                 );
               })}
             </div>
+
+            {/* Mobile PWA Installation card */}
+            {!isAppInstalled && (
+              <div className="mx-3 my-2 p-3 bg-indigo-950/20 border border-indigo-900/35 rounded-xl text-left space-y-1.5 shrink-0">
+                <div className="flex items-center gap-1.5 text-indigo-400">
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span className="text-[10px] font-black uppercase tracking-wider">TráfegON no Celular</span>
+                </div>
+                <p className="text-[9.5px] text-gray-400 leading-normal">
+                  Instale na sua tela de início para acesso em tela cheia com ícone oficial.
+                </p>
+                <button
+                  onClick={handleInstallAppClick}
+                  className="w-full py-1.5 bg-indigo-650 hover:bg-indigo-600 text-white rounded-lg text-[10px] font-bold font-mono transition-colors shadow-sm cursor-pointer text-center"
+                >
+                  Instalar no Aparelho
+                </button>
+              </div>
+            )}
 
             {/* Mobile drawer profile info */}
             <div className="p-4 border-t border-[#212121] bg-[#111111] flex items-center gap-3">
