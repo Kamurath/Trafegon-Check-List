@@ -220,10 +220,16 @@ export default function App() {
 
     if (savedTasks) {
       let parsed = JSON.parse(savedTasks) as StandardTask[];
-      parsed = parsed.filter(t => t.frequency !== 'diario' || !['story-2', 'story-3', 'story-real', 'bastidor'].includes(t.id));
+      parsed = parsed.filter(t => t.id !== 'pendencia-diaria' && (t.frequency !== 'diario' || !['story-2', 'story-3', 'story-real', 'bastidor'].includes(t.id)));
       parsed = parsed.map(t => {
         if (t.id === 'nota-instagram') {
-          return { ...t, title: 'Insira Nota' };
+          return { ...t, title: 'Notas do Instagram (1 nota)', description: 'Inserir uma nota no perfil do Instagram da unidade.' };
+        }
+        if (t.id === 'story-1') {
+          return { ...t, title: 'Story diário (1 story)', description: 'Postar o story diário da unidade (mínimo de 1 story).' };
+        }
+        if (t.id === 'postagem-principal') {
+          return { ...t, title: 'Postagens nas Segundas, Quartas e Sextas', description: 'Publicar a postagem principal de Feed programada para Segundas, Quartas e Sextas.' };
         }
         return t;
       });

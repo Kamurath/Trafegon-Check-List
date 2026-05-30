@@ -39,6 +39,25 @@ const METRICS_SHEETS: Record<string, string> = {
   '13': '12XNNZnOJza65yNGagTXQEIwfwcPwf1gklaIW8pFHDlU'
 };
 
+function parseCSVRow(row: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < row.length; i++) {
+    const char = row[i];
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
 interface MetricasViewProps {
   units: Unit[];
 }
@@ -100,6 +119,7 @@ export default function MetricasView({ units }: MetricasViewProps) {
     setLoading(true);
     setErrorStatus(null);
     try {
+      // Try backend endpoint first
       const response = await fetch('/api/metrics');
       if (!response.ok) {
         throw new Error(`Erro HTTP ${response.status}`);
@@ -112,8 +132,71 @@ export default function MetricasView({ units }: MetricasViewProps) {
         showGlobalSuccessToast();
       }
     } catch (err: any) {
-      console.error('Erro ao ler métricas do backend:', err);
-      setErrorStatus(err.message || 'Falha ao conectar ao servidor de dados.');
+      console.warn('Erro ao ler métricas do backend, iniciando fallback de download direto no navegador:', err);
+      
+      // Fallback: Fetch directly from Google Sheets from the browser
+      try {
+        const fallbacks: Record<string, UnitMetricData> = {};
+        const promises = Object.entries(METRICS_SHEETS).map(async ([unitId, sheetId]) => {
+          try {
+            const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+            const response = await fetch(url);
+            if (!response.ok) {
+              throw new Error(`Status HTTP ${response.status}`);
+            }
+            const text = await response.text();
+            const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+            if (lines.length < 2) {
+              throw new Error('Planilha sem dados');
+            }
+            
+            const rowValues = parseCSVRow(lines[1]);
+            const rawSpend = rowValues[0] || '0';
+            const spend = parseFloat(rawSpend.replace(/"/g, '').replace(/\./g, '').replace(',', '.')) || 0;
+            const impressions = parseInt((rowValues[1] || '0').replace(/"/g, ''), 10) || 0;
+            const reach = parseInt((rowValues[2] || '0').replace(/"/g, ''), 10) || 0;
+            const engagement = parseInt((rowValues[3] || '0').replace(/"/g, ''), 10) || 0;
+            const clicks = parseInt((rowValues[4] || '0').replace(/"/g, ''), 10) || 0;
+            const conversations = parseInt((rowValues[5] || '0').replace(/"/g, ''), 10) || 0;
+            
+            fallbacks[unitId] = {
+              unitId,
+              success: true,
+              spend,
+              impressions,
+              reach,
+              engagement,
+              clicks,
+              conversations,
+              updatedAt: new Date().toISOString()
+            };
+          } catch (unitErr: any) {
+            console.error(`Falha no fallback direto da unidade ${unitId}:`, unitErr);
+            fallbacks[unitId] = {
+              unitId,
+              success: false,
+              spend: 0,
+              impressions: 0,
+              reach: 0,
+              engagement: 0,
+              clicks: 0,
+              conversations: 0,
+              error: unitErr.message || 'Erro de conexão no navegador'
+            };
+          }
+        });
+
+        await Promise.all(promises);
+        setMetrics(fallbacks);
+        setLastRefreshed(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' (Navegador)');
+        
+        if (isManualAction) {
+          showNotice('Métricas sincronizadas via conexão direta no seu navegador!');
+        }
+      } catch (fallbackErr: any) {
+        console.error('Falha crítica em ambos os métodos de sincronização:', fallbackErr);
+        setErrorStatus('Falha ao conectar com o servidor e nas solicitações diretas das planilhas.');
+      }
     } finally {
       setLoading(false);
     }

@@ -167,23 +167,9 @@ export default function HojeView({
         description: task.description
       }));
 
-      // Add linked active pendencies for clinical awareness
-      const unitOpenPendencias = pendencias.filter(p => p.unitId === unitId && (p.status === 'pendente' || p.status === 'em_andamento' || p.status === 'aberta'));
-      const pendencyTasks = unitOpenPendencias.map(p => {
-        const priorityVal = p.priority || p.urgency || 'media';
-        return {
-          id: `pendencia-${p.id}`,
-          title: `Pendência: ${p.description}`,
-          isPendency: true,
-          pendencyId: p.id,
-          urgency: priorityVal,
-          description: `Resp: ${p.responsible} | Prazo: ${p.prazo ? formatShortDate(p.prazo) : 'Imediato'}`
-        } as any;
-      });
-
-      return [...checklistItems, ...pendencyTasks];
+      return checklistItems;
     };
-  }, [tasks, pendencias]);
+  }, [tasks]);
 
   // Compute Task Status helpers
   const getTaskStatus = (unitId: string, taskId: string, dateStr: string, suggestedTime?: string) => {
@@ -770,12 +756,11 @@ export default function HojeView({
                   <tr>
                     <th className="py-3 px-4 text-left font-extrabold">Unidade</th>
                     <th className="py-3 px-4 text-center font-extrabold">% Ok</th>
-                    <th className="py-3 px-3 text-center">Story 1<span className="block text-[8px] text-gray-500 font-mono">08h</span></th>
-                    <th className="py-3 px-3 text-center">Insira Nota<span className="block text-[8px] text-gray-500 font-mono">08h</span></th>
+                    <th className="py-3 px-3 text-center">Story Diário<span className="block text-[8px] text-gray-500 font-mono">1 Story / 08h</span></th>
+                    <th className="py-3 px-3 text-center">Notas do Instagram<span className="block text-[8px] text-gray-500 font-mono">1 Nota / 08h</span></th>
                     {isPostagemFieldDay && (
-                      <th className="py-3 px-3 text-center text-indigo-400">Feed Principal<span className="block text-[8px] text-indigo-500 font-mono">12h</span></th>
+                      <th className="py-3 px-3 text-center text-indigo-400">Postagem Feed<span className="block text-[8px] text-indigo-500 font-mono">Seg/Qua/Sex / 12h</span></th>
                     )}
-                    <th className="py-3 px-4 text-left">Alertas Ativos</th>
                     <th className="py-3 px-3 text-right">Ação</th>
                   </tr>
                 </thead>
@@ -854,21 +839,6 @@ export default function HojeView({
                             </td>
                           );
                         })}
-
-                        {/* Open Pendencia Summary */}
-                        <td className="py-3 px-4 max-w-[200px]">
-                          {unitPendencias.length === 0 ? (
-                            <span className="text-gray-600 italic text-[11px]">- Sem ocorrências -</span>
-                          ) : (
-                            <div className="flex flex-col gap-1 max-h-[45px] overflow-y-auto">
-                              {unitPendencias.map(p => (
-                                <span key={p.id} className="text-[10px] text-amber-500 font-semibold truncate block" title={p.description}>
-                                  ↳ {p.description}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </td>
 
                         {/* Navigation & actions per unit row */}
                         <td className="py-3 px-3 text-right">

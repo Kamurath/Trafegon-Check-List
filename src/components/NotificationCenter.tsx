@@ -80,127 +80,54 @@ export default function NotificationCenter({
     return dates;
   }, [selectedDate]);
 
-  // Calculate live alerts
+  // Calculate live alerts based strictly on the current day's active daily routine
   const alerts: AlertNotification[] = useMemo(() => {
     const list: AlertNotification[] = [];
     const activeUnitsList = units.filter(u => u.active);
 
+    const parts = todayDate.split('-');
+    const dayOfWeek = parts.length === 3 ? new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])).getDay() : new Date().getDay();
+
+    const postagemDays = [1, 3, 5]; // Mondays, Wednesdays, Fridays
+    const isPostagemDay = postagemDays.includes(dayOfWeek);
+
     const dailyTasks = tasks.filter(t => t.frequency === 'diario');
-    const weeklyTasks = tasks.filter(t => t.frequency === 'semanal');
-    const monthlyTasks = tasks.filter(t => t.frequency === 'mensal');
+    const activeDailyTasks = dailyTasks.filter(task => {
+      if (task.id === 'postagem-principal') {
+        return isPostagemDay;
+      }
+      if ((task.id === 'story-1' || task.id === 'nota-instagram') && dayOfWeek === 0) {
+        return false;
+      }
+      return true;
+    });
 
-    // 1. ACTIVE HIGH/MEDIUM PENDENCIAS ALERTS
-    pendencias
-      .filter(p => p.status === 'aberta')
-      .forEach(p => {
-        const u = units.find(unit => unit.id === p.unitId);
-        if (!u) return;
-
-        list.push({
-          id: `pend_${p.id}`,
-          type: 'pendencia',
-          title: 'Gargalo Crítico Ativo',
-          message: p.description,
-          urgency: p.urgency === 'alta' ? 'alta' : p.urgency === 'media' ? 'media' : 'baixa',
-          unitId: p.unitId,
-          unitName: u.name,
-          pendenciaId: p.id
-        });
-      });
-
-    // 2. DAILY CHECKS: Check if missing for today's selected date
+    // Generate alerts only for today's outstanding daily tasks
     activeUnitsList.forEach(u => {
-      // Look for any daily task that does not have an execution for selectedDate
-      // that is 'executado' or 'nao_se_aplica'
-      dailyTasks.forEach(task => {
+      activeDailyTasks.forEach(task => {
         const foundExec = executions.find(
-          e => e.unitId === u.id && e.date === selectedDate && e.taskId === task.id
+          e => e.unitId === u.id && e.date === todayDate && e.taskId === task.id
         );
         const isCompleted = foundExec && (foundExec.status === 'executado' || foundExec.status === 'nao_se_aplica');
 
         if (!isCompleted) {
           list.push({
-            id: `daily_${u.id}_${task.id}_${selectedDate}`,
+            id: `daily_${u.id}_${task.id}_${todayDate}`,
             type: 'diario',
             title: 'Rotina Diária Pendente',
             message: `Procedimento "${task.title}" não foi atualizado hoje nesta unidade.`,
-            urgency: 'alta', // daily tasks not done represent key visual gaps on today's social feeds
+            urgency: 'alta',
             unitId: u.id,
             unitName: u.name,
             taskId: task.id,
-            date: selectedDate
-          });
-        }
-      });
-    });
-
-    // 3. WEEKLY CHECKS: Check if there is NO completed/nao_se_aplica execution within current week
-    if (weekDates.length > 0) {
-      // Is current week approaching deadline (Thursday, Friday, Saturday, Sunday)?
-      // If yes, trigger high alert. If Monday-Wednesday, flag as medium/upcoming warning.
-      const currentParsedDate = new Date();
-      const currentDayIndex = currentParsedDate.getDay(); // 0 is Sunday, 4 is Thurs, 5 Fri ...
-      const isWeekDeadlineApproaching = currentDayIndex === 0 || currentDayIndex >= 4;
-
-      activeUnitsList.forEach(u => {
-        weeklyTasks.forEach(task => {
-          // Look for any of current week dates executed
-          const completedInWeek = executions.some(
-            e => e.unitId === u.id && 
-                 weekDates.includes(e.date) && 
-                 e.taskId === task.id && 
-                 (e.status === 'executado' || e.status === 'nao_se_aplica')
-          );
-
-          if (!completedInWeek) {
-            list.push({
-              id: `weekly_${u.id}_${task.id}`,
-              type: 'semanal',
-              title: isWeekDeadlineApproaching ? 'Rotina Semanal Atrasada' : 'Rotina Semanal Programada',
-              message: `Ação "${task.title}" programada para esta semana ainda não foi executada nesta clínica.`,
-              urgency: isWeekDeadlineApproaching ? 'alta' : 'media',
-              unitId: u.id,
-              unitName: u.name,
-              taskId: task.id,
-              date: selectedDate
-            });
-          }
-        });
-      });
-    }
-
-    // 4. MONTHLY CHECKS: Check if no completed executions in current Year-Month
-    const currentMonthPrefix = selectedDate.substring(0, 7); // "YYYY-MM"
-    const currentDayOfMonth = Number(selectedDate.split('-')[2]) || 1;
-    const isMonthDeadline = currentDayOfMonth >= 20; // Critical warning in the last 10 days
-
-    activeUnitsList.forEach(u => {
-      monthlyTasks.forEach(task => {
-        const completedInMonth = executions.some(
-          e => e.unitId === u.id && 
-               e.date.startsWith(currentMonthPrefix) && 
-               e.taskId === task.id && 
-               (e.status === 'executado' || e.status === 'nao_se_aplica')
-        );
-
-        if (!completedInMonth) {
-          list.push({
-            id: `monthly_${u.id}_${task.id}`,
-            type: 'mensal',
-            title: isMonthDeadline ? 'Relatório/Revisão Mensal Urgente' : 'Ação Mensal Programada',
-            message: `Ação mensal "${task.title}" pendente para o mês operacional vigente.`,
-            urgency: isMonthDeadline ? 'alta' : 'media',
-            unitId: u.id,
-            unitName: u.name,
-            taskId: task.id,
-            date: selectedDate
+            date: todayDate
           });
         }
       });
     });
 
     return list.filter(alert => !dismissedAlerts.includes(alert.id));
-  }, [units, tasks, executions, pendencias, selectedDate, dismissedAlerts, weekDates]);
+  }, [units, tasks, executions, todayDate, dismissedAlerts]);
 
   // Handle outside click to close notification box
   useEffect(() => {

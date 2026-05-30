@@ -189,30 +189,23 @@ export const INITIAL_STANDARD_TASKS: StandardTask[] = [
   // 1. CHECKLIST DIÁRIO
   {
     id: 'story-1',
-    title: 'Story 1 publicado/programado',
+    title: 'Story diário (1 story)',
     frequency: 'diario',
-    description: 'Verificar a publicação ou programação do primeiro Story do dia (sugestão: início da manhã).',
+    description: 'Postar o story diário da unidade (mínimo de 1 story).',
     priority: 'alta'
   },
   {
     id: 'nota-instagram',
-    title: 'Insira Nota',
+    title: 'Notas do Instagram (1 nota)',
     frequency: 'diario',
-    description: 'Postar uma nota curta no perfil para aumentar retenção e interações de ofertas rápidas.',
-    priority: 'baixa'
-  },
-  {
-    id: 'pendencia-diaria',
-    title: 'Pendência registrada, se houver',
-    frequency: 'diario',
-    description: 'Garantir que qualquer desvio do dia foi devidamente formalizado como pendência para a unidade.',
-    priority: 'baixa'
+    description: 'Inserir uma nota no perfil do Instagram da unidade.',
+    priority: 'media'
   },
   {
     id: 'postagem-principal',
-    title: 'Postagem principal publicada/programada',
+    title: 'Postagens nas Segundas, Quartas e Sextas',
     frequency: 'diario',
-    description: 'Garantir a publicação da postagem de Feed principal (agendada automaticamente para Segundas, Quartas e Sextas).',
+    description: 'Publicar a postagem principal de Feed programada para Segundas, Quartas e Sextas.',
     priority: 'alta'
   },
 

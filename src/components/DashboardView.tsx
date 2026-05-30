@@ -98,15 +98,15 @@ export default function DashboardView({
       const checklistItems: any[] = [];
       if (dayOfWeek !== 0) {
         checklistItems.push(
-          { id: 'story-1', title: 'Story 1 publicado/programado', suggestedTime: '08:00', isStory: true },
-          { id: 'nota-instagram', title: 'Insira Nota', suggestedTime: '08:00', isNota: true }
+          { id: 'story-1', title: 'Story diário (1 story)', suggestedTime: '08:00', isStory: true },
+          { id: 'nota-instagram', title: 'Notas do Instagram (1 nota)', suggestedTime: '08:00', isNota: true }
         );
       }
 
       if (isPostagemDay) {
         checklistItems.push({
           id: 'postagem-principal',
-          title: 'Postagem principal publicada/programada',
+          title: 'Postagens nas Segundas, Quartas e Sextas',
           suggestedTime: '12:00',
           isPostagem: true
         } as any);
@@ -399,7 +399,7 @@ export default function DashboardView({
         const story1Str = executions.some(e => e.unitId === u.unit.id && e.date === selectedDate && e.taskId === 'story-1' && e.status === 'executado') ? 'Postado' : '❌ Não postado';
         const notaStr = executions.some(e => e.unitId === u.unit.id && e.date === selectedDate && e.taskId === 'nota-instagram' && e.status === 'executado') ? 'Postado' : '❌ Não postado';
         text += `- ⚠️ *${u.unit.name}* (Ponto de Contato: _${u.unit.gerente}_)\n`;
-        text += `  └ Story 1: ${story1Str} | Insira Nota: ${notaStr}\n`;
+        text += `  └ Story Diário: ${story1Str} | Notas do Instagram: ${notaStr}\n`;
       });
     }
     text += `\n`;
@@ -596,10 +596,10 @@ export default function DashboardView({
           <table className="w-full text-left text-xs min-w-[750px]">
             <thead className="bg-[#181818] text-gray-400 font-mono text-[9px] uppercase tracking-wider font-extrabold border-b border-[#212121] select-none">
               <tr>
-                <th className="py-3 px-4">Unidade</th>
+                <th className="py-3 px-3 text-center">Unidade</th>
                 <th className="py-3 px-3 text-center">Status Geral</th>
-                <th className="py-3 px-3 text-center">Story 1</th>
-                <th className="py-3 px-3 text-center">Insira Nota</th>
+                <th className="py-3 px-3 text-center">Story Diário</th>
+                <th className="py-3 px-3 text-center">Notas do Instagram</th>
                 <th className="py-3 px-3 text-center">Postagem Feed</th>
                 <th className="py-3 px-3 text-center">Ocorrências Ativas</th>
                 <th className="py-3 px-4 text-right">Colaboração da Unidade</th>
@@ -653,7 +653,7 @@ export default function DashboardView({
                             : story1Status === 'nao_se_aplica'
                             ? 'bg-zinc-800/40 border border-zinc-700/30 text-gray-400'
                             : 'bg-rose-950/20 border border-rose-900/20 text-rose-450'
-                        }`} title={story1Status === 'executado' ? 'Story 1 publicado' : story1Status === 'nao_se_aplica' ? 'Story 1 não se aplica' : 'Story 1 pendente'}>
+                        }`} title={story1Status === 'executado' ? 'Story diário publicado' : story1Status === 'nao_se_aplica' ? 'Story diário não se aplica' : 'Story diário pendente'}>
                           <Instagram className="w-4 h-4" />
                         </span>
                       </div>
@@ -668,7 +668,7 @@ export default function DashboardView({
                             : notaStatus === 'nao_se_aplica'
                             ? 'bg-zinc-800/40 border border-zinc-700/30 text-gray-400'
                             : 'bg-rose-950/20 border border-rose-900/20 text-rose-450'
-                        }`} title={notaStatus === 'executado' ? 'Nota publicada com sucesso' : notaStatus === 'nao_se_aplica' ? 'Nota não se aplica' : 'Nota não realizada ou pendente'}>
+                        }`} title={notaStatus === 'executado' ? 'Nota do Instagram publicada com sucesso' : notaStatus === 'nao_se_aplica' ? 'Nota do Instagram não se aplica' : 'Nota do Instagram não realizada ou pendente'}>
                           <Instagram className="w-4 h-4" />
                         </span>
                       </div>
